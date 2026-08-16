@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Currency {
+  IDR
+  USD
+}
+
+enum CouponFrequency {
+  Annually
+  Semiannually
+  Quarterly
+  Monthly
+}
+
+enum CouponType {
+  REGULAR
+  LONG
+  SHORT
+}
+
+enum RatingOutlook {
+  Positive
+  Stable
+  Negative
+}
+
+model Bond {
+  id               String          @id @default(cuid())
+  name             String          @unique
+  refinitivTicker  String?
+  hasLockUp        Boolean         @default(false)
+  issueDate        DateTime
+  maturityDate     DateTime
+  moodysOutlook    String?
+  moodysRating     String?
+  spOutlook        String?
+  spRating         String?
+  currency         Currency
+  couponRate       Float
+  couponFrequency  CouponFrequency
+  isinCode         String?
+  couponType       CouponType      @default(REGULAR)
+  firstCouponDate  DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([currency])
+}
+
+enum Market {
+  IDR
+  USD
+}
+
+model Holiday {
+  id     String  @id @default(cuid())
+  date   DateTime
+  market Market
+
+  @@unique([date, market])
+  @@index([market])
+}
