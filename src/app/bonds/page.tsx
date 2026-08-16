@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { BondDTO } from "@/lib/types";
 import { BondForm } from "@/components/BondForm";
 import { formatDate, formatPercent } from "@/lib/format";
+import { TextInput, PrimaryButton, SecondaryButton, Panel, Pill, Table, Thead } from "@/components/ui";
 
 export default function BondsPage() {
   const [bonds, setBonds] = useState<BondDTO[]>([]);
@@ -54,29 +55,25 @@ export default function BondsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Database Obligasi</h1>
-          <p className="mt-1 text-sm text-slate-600">Data referensi obligasi yang dipakai kedua kalkulator.</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-accent-strong">Data Bersama</p>
+          <h1 className="text-xl font-semibold text-ink">Database Obligasi</h1>
+          <p className="mt-1 text-sm text-ink-muted">Data referensi obligasi yang dipakai ketiga kalkulator.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-        >
-          + Tambah Obligasi
-        </button>
+        <PrimaryButton onClick={openCreate}>+ Tambah Obligasi</PrimaryButton>
       </div>
 
-      <input
+      <TextInput
         type="text"
         placeholder="Cari nama obligasi atau ISIN..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        className="max-w-sm"
       />
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <Panel className="overflow-hidden">
         <div className="max-h-[65vh] overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <Table>
+            <Thead>
               <tr>
                 <th className="px-4 py-2 text-left">Nama</th>
                 <th className="px-4 py-2 text-left">Mata Uang</th>
@@ -87,18 +84,18 @@ export default function BondsPage() {
                 <th className="px-4 py-2 text-left">ISIN</th>
                 <th className="px-4 py-2 text-right">Aksi</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            </Thead>
+            <tbody className="divide-y divide-border">
               {loading && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-6 text-center text-ink-faint">
                     Memuat...
                   </td>
                 </tr>
               )}
               {!loading && bonds.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-6 text-center text-ink-faint">
                     Tidak ada obligasi ditemukan.
                   </td>
                 </tr>
@@ -106,60 +103,53 @@ export default function BondsPage() {
               {!loading &&
                 bonds.map((bond) => (
                   <tr key={bond.id}>
-                    <td className="px-4 py-2 font-medium text-slate-900">
-                      {bond.name}
-                      {bond.hasLockUp && (
-                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                          LOCK-UP
-                        </span>
-                      )}
+                    <td className="px-4 py-2 font-medium text-ink">
+                      <span className="inline-flex items-center gap-2">
+                        {bond.name}
+                        {bond.hasLockUp && <Pill tone="warning">LOCK-UP</Pill>}
+                      </span>
                     </td>
                     <td className="px-4 py-2">{bond.currency}</td>
-                    <td className="px-4 py-2 text-right">{formatPercent(bond.couponRate, 3)}</td>
+                    <td className="num px-4 py-2 text-right">{formatPercent(bond.couponRate, 3)}</td>
                     <td className="px-4 py-2">{bond.couponFrequency}</td>
                     <td className="px-4 py-2">{formatDate(bond.maturityDate)}</td>
                     <td className="px-4 py-2">{bond.couponType}</td>
-                    <td className="px-4 py-2 text-slate-500">{bond.isinCode ?? "—"}</td>
+                    <td className="num px-4 py-2 text-ink-muted">{bond.isinCode ?? "—"}</td>
                     <td className="px-4 py-2 text-right">
-                      <button onClick={() => openEdit(bond)} className="mr-3 text-slate-600 hover:text-slate-900">
+                      <button onClick={() => openEdit(bond)} className="mr-3 text-ink-muted hover:text-accent-strong">
                         Edit
                       </button>
-                      <button onClick={() => setDeleteTarget(bond)} className="text-red-600 hover:text-red-800">
+                      <button onClick={() => setDeleteTarget(bond)} className="text-negative hover:text-negative/80">
                         Hapus
                       </button>
                     </td>
                   </tr>
                 ))}
             </tbody>
-          </table>
+          </Table>
         </div>
-      </div>
+      </Panel>
 
       {showForm && <BondForm initial={editing} onClose={closeForm} onSaved={onSaved} />}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-base font-semibold text-slate-900">Hapus Obligasi</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Yakin ingin menghapus <span className="font-medium">{deleteTarget.name}</span>? Tindakan ini tidak dapat
-              dibatalkan.
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-accent-ink/50 p-4">
+          <Panel className="w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-ink">Hapus Obligasi</h3>
+            <p className="mt-2 text-sm text-ink-muted">
+              Yakin ingin menghapus <span className="font-medium text-ink">{deleteTarget.name}</span>? Tindakan ini
+              tidak dapat dibatalkan.
             </p>
             <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setDeleteTarget(null)}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Batal
-              </button>
+              <SecondaryButton onClick={() => setDeleteTarget(null)}>Batal</SecondaryButton>
               <button
                 onClick={confirmDelete}
-                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="rounded bg-negative px-4 py-2 text-sm font-medium text-white hover:bg-negative/85"
               >
                 Hapus
               </button>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
     </div>

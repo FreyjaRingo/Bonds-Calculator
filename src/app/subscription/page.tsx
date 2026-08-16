@@ -6,6 +6,7 @@ import type { BondDTO } from "@/lib/types";
 import { bondDtoToInput } from "@/lib/types";
 import { calcSubscription, type Holiday, type SubscriptionResult } from "@/lib/finance";
 import { formatCurrency, formatDate, formatNumber, formatPercent, toDateInputValue } from "@/lib/format";
+import { Field, TextInput, Panel, SectionPanel, Stat, EmptyState, ErrorState, Table, Thead } from "@/components/ui";
 
 export default function SubscriptionPage() {
   const [bond, setBond] = useState<BondDTO | null>(null);
@@ -41,91 +42,48 @@ export default function SubscriptionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Kalkulator Subscription</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent-strong">Kalkulator</p>
+        <h1 className="text-xl font-semibold text-ink">Subscription</h1>
+        <p className="mt-1 text-sm text-ink-muted">
           Kalkulator beli indikatif — settlement date, accrued interest, total dana didebit, YTM, dan jadwal kupon.
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
+        <Panel className="space-y-4 p-5">
           <Field label="Obligasi">
             <BondCombobox value={bond} onChange={setBond} />
           </Field>
           <Field label="Nominal">
-            <input
-              type="number"
-              min={0}
-              value={nominal}
-              onChange={(e) => setNominal(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
+            <TextInput type="number" min={0} value={nominal} onChange={(e) => setNominal(e.target.value)} />
           </Field>
           <Field label="Harga Indikatif (per 100)">
-            <input
-              type="number"
-              min={0}
-              step="0.001"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
+            <TextInput type="number" min={0} step="0.001" value={price} onChange={(e) => setPrice(e.target.value)} />
           </Field>
           <Field label="Tanggal Transaksi">
-            <input
-              type="date"
-              value={tradeDate}
-              onChange={(e) => setTradeDate(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
+            <TextInput type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
           </Field>
           {bond && (
-            <div className="rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+            <div className="rounded border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
               <p>
-                {bond.currency} · kupon {formatPercent(bond.couponRate, 3)} · {bond.couponFrequency}
+                {bond.currency} · kupon <span className="num">{formatPercent(bond.couponRate, 3)}</span> ·{" "}
+                {bond.couponFrequency}
               </p>
               <p>
                 Terbit {formatDate(bond.issueDate)} · Jatuh tempo {formatDate(bond.maturityDate)}
               </p>
             </div>
           )}
-        </div>
+        </Panel>
 
-        <div className="space-y-4">
-          {!bond && (
-            <EmptyState message="Pilih obligasi terlebih dahulu untuk mulai menghitung." />
-          )}
-          {bond && !result && (
-            <EmptyState message="Lengkapi nominal, harga, dan tanggal transaksi yang valid." />
-          )}
+        <div className="space-y-5">
+          {!bond && <EmptyState message="Pilih obligasi terlebih dahulu untuk mulai menghitung." />}
+          {bond && !result && <EmptyState message="Lengkapi nominal, harga, dan tanggal transaksi yang valid." />}
           {bond && result && !result.ok && <ErrorState message={result.error} />}
           {bond && result && result.ok && <ResultView bond={bond} data={result.data} nominal={Number(nominal)} />}
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-sm text-slate-400">
-      {message}
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string }) {
-  return (
-    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{message}</div>
   );
 }
 
@@ -138,24 +96,21 @@ function ResultView({ bond, data, nominal }: { bond: BondDTO; data: Subscription
   const roiGross = initialInvestment !== 0 ? difference / initialInvestment : 0;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Stat label="Tanggal Settlement" value={formatDate(data.settlementDate)} />
-        <Stat label="Sisa Waktu ke Jatuh Tempo" value={`${formatNumber(data.yearsToMaturity, 2)} tahun`} />
-        <Stat label="Kupon Sebelumnya / Berikutnya" value={`${formatDate(data.couponPrev)} → ${formatDate(data.couponNext)}`} />
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Stat label="Settlement" value={formatDate(data.settlementDate)} />
+        <Stat label="Sisa ke Jatuh Tempo" value={`${formatNumber(data.yearsToMaturity, 2)} th`} />
         <Stat label="Hari Kupon Berjalan" value={`${data.accruedDays} hari`} />
-        <Stat label="Accrued Interest" value={formatCurrency(data.accruedInterest, bond.currency)} highlight />
+        <Stat label="Indicative YTM" value={formatPercent(data.ytm)} tone="accent" />
+        <Stat label="Kupon Sebelum → Berikutnya" value={`${formatDate(data.couponPrev)} → ${formatDate(data.couponNext)}`} />
+        <Stat label="Accrued Interest" value={formatCurrency(data.accruedInterest, bond.currency)} />
         <Stat label="Principal" value={formatCurrency(data.principal, bond.currency)} />
-        <Stat label="Total Dana Didebit" value={formatCurrency(data.totalAmount, bond.currency)} highlight />
-        <Stat label="Indicative YTM" value={formatPercent(data.ytm)} highlight />
+        <Stat label="Total Dana Didebit" value={formatCurrency(data.totalAmount, bond.currency)} tone="accent" />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-amber-400 px-4 py-2">
-          <h2 className="text-sm font-semibold text-slate-900">Summary Cash Flow</h2>
-        </div>
-        <table className="w-full text-sm">
-          <tbody className="divide-y divide-slate-100">
+      <SectionPanel title="Summary Cash Flow">
+        <Table>
+          <tbody className="divide-y divide-border">
             <SummaryRow label="Pengembalian Pokok" value={formatCurrency(principalReturned, bond.currency)} />
             <SummaryRow label="Total Kupon Diterima / Gross" value={formatCurrency(totalCouponReceived, bond.currency)} />
             <SummaryRow label="Total Dana Diterima Pada Akhir Periode" value={formatCurrency(totalFundsAtEnd, bond.currency)} />
@@ -163,16 +118,13 @@ function ResultView({ bond, data, nominal }: { bond: BondDTO; data: Subscription
             <SummaryRow label="Selisih" value={formatCurrency(difference, bond.currency)} emphasis />
             <SummaryRow label="ROI Gross" value={formatPercent(roiGross, 2)} emphasis />
           </tbody>
-        </table>
-      </div>
+        </Table>
+      </SectionPanel>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">Jadwal Kupon (sampai jatuh tempo)</h2>
-        </div>
-        <div className="max-h-96 overflow-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+      <SectionPanel title="Jadwal Kupon (sampai jatuh tempo)">
+        <div className="-m-4 max-h-96 overflow-auto">
+          <Table>
+            <Thead>
               <tr>
                 <th className="px-4 py-2 text-left">#</th>
                 <th className="px-4 py-2 text-left">Tanggal</th>
@@ -181,48 +133,39 @@ function ResultView({ bond, data, nominal }: { bond: BondDTO; data: Subscription
                 <th className="px-4 py-2 text-right">Refund Pajak</th>
                 <th className="px-4 py-2 text-right">Total Diterima</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            </Thead>
+            <tbody className="divide-y divide-border">
               {data.couponSchedule.map((row) => (
                 <tr key={row.index}>
-                  <td className="px-4 py-2 text-slate-500">{row.index}</td>
+                  <td className="num px-4 py-2 text-ink-muted">{row.index}</td>
                   <td className="px-4 py-2">{formatDate(row.date)}</td>
-                  <td className="px-4 py-2 text-right">{formatCurrency(row.grossCoupon, bond.currency)}</td>
-                  <td className="px-4 py-2 text-right">{formatCurrency(row.netCoupon, bond.currency)}</td>
-                  <td className="px-4 py-2 text-right">{formatCurrency(row.taxRefund, bond.currency)}</td>
-                  <td className="px-4 py-2 text-right font-medium">{formatCurrency(row.totalReceived, bond.currency)}</td>
+                  <td className="num px-4 py-2 text-right">{formatCurrency(row.grossCoupon, bond.currency)}</td>
+                  <td className="num px-4 py-2 text-right">{formatCurrency(row.netCoupon, bond.currency)}</td>
+                  <td className="num px-4 py-2 text-right">{formatCurrency(row.taxRefund, bond.currency)}</td>
+                  <td className="num px-4 py-2 text-right font-semibold">{formatCurrency(row.totalReceived, bond.currency)}</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="border-t border-slate-200 bg-slate-50 text-sm font-semibold">
+            <tfoot className="border-t border-border bg-surface-2 text-sm font-semibold">
               <tr>
                 <td colSpan={5} className="px-4 py-2 text-right">
                   Total Kupon
                 </td>
-                <td className="px-4 py-2 text-right">{formatCurrency(data.totalCouponsForward, bond.currency)}</td>
+                <td className="num px-4 py-2 text-right">{formatCurrency(data.totalCouponsForward, bond.currency)}</td>
               </tr>
             </tfoot>
-          </table>
+          </Table>
         </div>
-      </div>
+      </SectionPanel>
     </div>
   );
 }
 
 function SummaryRow({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <tr className={emphasis ? "bg-slate-50" : undefined}>
-      <td className={`px-4 py-2 font-medium text-slate-700 ${emphasis ? "font-semibold" : ""}`}>{label}</td>
-      <td className={`px-4 py-2 text-right ${emphasis ? "font-semibold text-slate-900" : "text-slate-700"}`}>{value}</td>
+    <tr className={emphasis ? "bg-surface-2" : undefined}>
+      <td className={`px-4 py-2 text-ink-muted ${emphasis ? "font-semibold text-ink" : ""}`}>{label}</td>
+      <td className={`num px-4 py-2 text-right ${emphasis ? "font-semibold text-ink" : "text-ink"}`}>{value}</td>
     </tr>
-  );
-}
-
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={`rounded-xl border p-4 ${highlight ? "border-slate-300 bg-slate-900 text-white" : "border-slate-200 bg-white"}`}>
-      <p className={`text-xs uppercase tracking-wide ${highlight ? "text-slate-300" : "text-slate-500"}`}>{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
-    </div>
   );
 }

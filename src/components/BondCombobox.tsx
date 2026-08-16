@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { BondDTO } from "@/lib/types";
+import { TextInput } from "@/components/ui";
 
 interface BondComboboxProps {
   value: BondDTO | null;
@@ -50,7 +51,7 @@ export function BondCombobox({ value, onChange }: BondComboboxProps) {
 
   return (
     <div ref={containerRef} className="relative">
-      <input
+      <TextInput
         type="text"
         value={query}
         onFocus={() => setOpen(true)}
@@ -60,13 +61,12 @@ export function BondCombobox({ value, onChange }: BondComboboxProps) {
           if (value) onChange(null);
         }}
         placeholder="Cari nama obligasi atau ISIN..."
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
       />
       {open && (
-        <div className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border border-slate-200 bg-white shadow-lg">
-          {loading && <div className="px-3 py-2 text-sm text-slate-400">Mencari...</div>}
+        <div className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-surface">
+          {loading && <div className="px-3 py-2 text-sm text-ink-faint">Mencari...</div>}
           {!loading && results.length === 0 && (
-            <div className="px-3 py-2 text-sm text-slate-400">Tidak ada obligasi ditemukan.</div>
+            <div className="px-3 py-2 text-sm text-ink-faint">Tidak ada obligasi ditemukan.</div>
           )}
           {!loading &&
             results.map((bond) => (
@@ -78,10 +78,10 @@ export function BondCombobox({ value, onChange }: BondComboboxProps) {
                   setQuery(bond.name);
                   setOpen(false);
                 }}
-                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-surface-2"
               >
-                <span className="font-medium text-slate-900">{bond.name}</span>
-                <span className="text-xs text-slate-500">
+                <span className="font-medium text-ink">{bond.name}</span>
+                <span className="num text-xs text-ink-muted">
                   {bond.currency} · kupon {(bond.couponRate * 100).toFixed(3)}% · JT {bond.maturityDate.slice(0, 10)}
                   {bond.isinCode ? ` · ${bond.isinCode}` : ""}
                 </span>

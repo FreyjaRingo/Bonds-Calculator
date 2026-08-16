@@ -1,35 +1,113 @@
 @import "tailwindcss";
 
+/*
+  Design system: "ledger" — a warm-ivory, gold-accented dashboard that echoes
+  the source Excel workbook's own gold section-header convention. Numbers are
+  set in a monospace face throughout so the actual content of this tool
+  (financial figures) lines up and reads cleanly.
+*/
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  color-scheme: light;
+  --bg: #faf7ef;
+  --surface: #ffffff;
+  --surface-2: #f1ebda;
+  --border: #e3dbc3;
+  --ink: #18160f;
+  --ink-muted: #6b6250;
+  --ink-faint: #a89f89;
+
+  --accent: #f2a900;
+  --accent-strong: #b8790a;
+  --accent-ink: #171512;
+  --accent-soft: #fbecc4;
+
+  --positive: #276749;
+  --positive-soft: #e3efe6;
+  --negative: #a3291e;
+  --negative-soft: #f6e5e2;
+  --warning: #9c6b12;
+  --warning-soft: #f2e6cb;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15130d;
+    --surface: #1e1b12;
+    --surface-2: #2a2518;
+    --border: #3a331f;
+    --ink: #f3efe1;
+    --ink-muted: #aba48d;
+    --ink-faint: #6f684f;
+
+    --accent: #f2b705;
+    --accent-strong: #ffcb3d;
+    --accent-ink: #15130d;
+    --accent-soft: #3a2f0c;
+
+    --positive: #5bab7f;
+    --positive-soft: #1c2f22;
+    --negative: #e07568;
+    --negative-soft: #372019;
+    --warning: #d6a23a;
+    --warning-soft: #35290f;
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
 }
 
 html {
-  color-scheme: light;
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 input,
 select,
 textarea {
-  background-color: #ffffff;
-  color: #0f172a;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
 }
 
 input::placeholder {
-  color: #94a3b8;
+  color: var(--ink-faint);
+}
+
+/* Financial figures line up in a monospace face with tabular numerals. */
+.num {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }

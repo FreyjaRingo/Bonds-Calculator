@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BondDTO } from "@/lib/types";
 import { toDateInputValue } from "@/lib/format";
+import { Field, TextInput, Select, PrimaryButton, SecondaryButton, Panel, ErrorState } from "@/components/ui";
 
 interface BondFormProps {
   initial?: BondDTO | null;
@@ -103,67 +104,79 @@ export function BondForm({ initial, onClose, onSaved }: BondFormProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-accent-ink/50 p-4">
+      <Panel className="max-h-[90vh] w-full max-w-2xl overflow-auto p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">{isEdit ? "Edit Obligasi" : "Tambah Obligasi Baru"}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <h2 className="text-lg font-semibold text-ink">{isEdit ? "Edit Obligasi" : "Tambah Obligasi Baru"}</h2>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink" aria-label="Tutup">
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+          {error && <ErrorState message={error} />}
 
           <div className="grid grid-cols-2 gap-4">
-            <TextField label="Nama Obligasi" value={form.name} onChange={(v) => update("name", v)} required />
-            <TextField label="Refinitiv Ticker" value={form.refinitivTicker} onChange={(v) => update("refinitivTicker", v)} />
-            <SelectField
-              label="Mata Uang"
-              value={form.currency}
-              onChange={(v) => update("currency", v as FormState["currency"])}
-              options={["IDR", "USD"]}
-            />
-            <TextField
-              label="Kupon (%)"
-              type="number"
-              step="0.0001"
-              value={form.couponRate}
-              onChange={(v) => update("couponRate", v)}
-              required
-            />
-            <SelectField
-              label="Frekuensi Kupon"
-              value={form.couponFrequency}
-              onChange={(v) => update("couponFrequency", v as FormState["couponFrequency"])}
-              options={["Annually", "Semiannually", "Quarterly", "Monthly"]}
-            />
-            <TextField label="ISIN Code" value={form.isinCode} onChange={(v) => update("isinCode", v)} />
-            <TextField label="Tanggal Penerbitan" type="date" value={form.issueDate} onChange={(v) => update("issueDate", v)} required />
-            <TextField label="Tanggal Jatuh Tempo" type="date" value={form.maturityDate} onChange={(v) => update("maturityDate", v)} required />
-            <TextField label="Moody's Rating" value={form.moodysRating} onChange={(v) => update("moodysRating", v)} />
-            <TextField label="Moody's Outlook" value={form.moodysOutlook} onChange={(v) => update("moodysOutlook", v)} />
-            <TextField label="S&P Rating" value={form.spRating} onChange={(v) => update("spRating", v)} />
-            <TextField label="S&P Outlook" value={form.spOutlook} onChange={(v) => update("spOutlook", v)} />
+            <Field label="Nama Obligasi">
+              <TextInput value={form.name} onChange={(e) => update("name", e.target.value)} required />
+            </Field>
+            <Field label="Refinitiv Ticker">
+              <TextInput value={form.refinitivTicker} onChange={(e) => update("refinitivTicker", e.target.value)} />
+            </Field>
+            <Field label="Mata Uang">
+              <Select value={form.currency} onChange={(e) => update("currency", e.target.value as FormState["currency"])}>
+                <option value="IDR">IDR</option>
+                <option value="USD">USD</option>
+              </Select>
+            </Field>
+            <Field label="Kupon (%)">
+              <TextInput type="number" step="0.0001" value={form.couponRate} onChange={(e) => update("couponRate", e.target.value)} required />
+            </Field>
+            <Field label="Frekuensi Kupon">
+              <Select value={form.couponFrequency} onChange={(e) => update("couponFrequency", e.target.value as FormState["couponFrequency"])}>
+                <option value="Annually">Annually</option>
+                <option value="Semiannually">Semiannually</option>
+                <option value="Quarterly">Quarterly</option>
+                <option value="Monthly">Monthly</option>
+              </Select>
+            </Field>
+            <Field label="ISIN Code">
+              <TextInput value={form.isinCode} onChange={(e) => update("isinCode", e.target.value)} />
+            </Field>
+            <Field label="Tanggal Penerbitan">
+              <TextInput type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} required />
+            </Field>
+            <Field label="Tanggal Jatuh Tempo">
+              <TextInput type="date" value={form.maturityDate} onChange={(e) => update("maturityDate", e.target.value)} required />
+            </Field>
+            <Field label="Moody's Rating">
+              <TextInput value={form.moodysRating} onChange={(e) => update("moodysRating", e.target.value)} />
+            </Field>
+            <Field label="Moody's Outlook">
+              <TextInput value={form.moodysOutlook} onChange={(e) => update("moodysOutlook", e.target.value)} />
+            </Field>
+            <Field label="S&P Rating">
+              <TextInput value={form.spRating} onChange={(e) => update("spRating", e.target.value)} />
+            </Field>
+            <Field label="S&P Outlook">
+              <TextInput value={form.spOutlook} onChange={(e) => update("spOutlook", e.target.value)} />
+            </Field>
           </div>
 
-          <div className="rounded-lg border border-slate-200 p-4">
-            <SelectField
-              label="Tipe Kupon Awal"
-              value={form.couponType}
-              onChange={(v) => update("couponType", v as FormState["couponType"])}
-              options={["REGULAR", "LONG", "SHORT"]}
-            />
+          <div className="rounded border border-border p-4">
+            <Field label="Tipe Kupon Awal">
+              <Select value={form.couponType} onChange={(e) => update("couponType", e.target.value as FormState["couponType"])}>
+                <option value="REGULAR">REGULAR</option>
+                <option value="LONG">LONG</option>
+                <option value="SHORT">SHORT</option>
+              </Select>
+            </Field>
             {isStub && (
               <div className="mt-3 space-y-3">
-                <TextField
-                  label="Tanggal Kupon Pertama"
-                  type="date"
-                  value={form.firstCouponDate}
-                  onChange={(v) => update("firstCouponDate", v)}
-                  required
-                />
-                <label className="flex items-center gap-2 text-sm text-slate-700">
+                <Field label="Tanggal Kupon Pertama">
+                  <TextInput type="date" value={form.firstCouponDate} onChange={(e) => update("firstCouponDate", e.target.value)} required />
+                </Field>
+                <label className="flex items-center gap-2 text-sm text-ink">
                   <input type="checkbox" checked={form.hasLockUp} onChange={(e) => update("hasLockUp", e.target.checked)} />
                   Obligasi memiliki masa Lock-Up (tidak dapat dijual sebelum kupon pertama)
                 </label>
@@ -172,82 +185,15 @@ export function BondForm({ initial, onClose, onSaved }: BondFormProps) {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <SecondaryButton type="button" onClick={onClose}>
               Batal
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
+            </SecondaryButton>
+            <PrimaryButton type="submit" disabled={saving}>
               {saving ? "Menyimpan..." : "Simpan"}
-            </button>
+            </PrimaryButton>
           </div>
         </form>
-      </div>
+      </Panel>
     </div>
-  );
-}
-
-function TextField({
-  label,
-  value,
-  onChange,
-  type = "text",
-  step,
-  required,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  step?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
-      <input
-        type={type}
-        step={step}
-        required={required}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-      />
-    </label>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: string[];
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
