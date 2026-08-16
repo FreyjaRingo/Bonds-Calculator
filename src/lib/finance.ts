@@ -346,6 +346,7 @@ export function bondYield(bond: BondInput, settlement: Date, cleanPrice: number,
   const denomDays = daysBasis(basis, prev, next);
   const dscDays = daysBasis(basis, settle, next);
   const dscOverE = denomDays > 0 ? dscDays / denomDays : 0;
+  const accruedPer100 = accruedInterest(bond, prev, settle, next, 100);
 
   // Build the list of coupon dates from `next` through maturity.
   const months = frequencyMonths(bond.couponFrequency);
@@ -365,8 +366,9 @@ export function bondYield(bond: BondInput, settlement: Date, cleanPrice: number,
     amount: i === dates.length - 1 ? couponPer100 + redemption : couponPer100,
   }));
 
+  // Excel's YIELD equation solves for clean price = PV(future cashflows) - accrued interest.
   function priceAt(y: number): number {
-    return cashflows.reduce((sum, cf) => sum + cf.amount / Math.pow(1 + y / freqNum, cf.n - 1 + dscOverE), 0);
+    return cashflows.reduce((sum, cf) => sum + cf.amount / Math.pow(1 + y / freqNum, cf.n - 1 + dscOverE), 0) - accruedPer100;
   }
   function derivativeAt(y: number): number {
     return cashflows.reduce((sum, cf) => {
