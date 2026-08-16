@@ -409,6 +409,70 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
           dari akumulasi kupon berjalan ditambah keuntungan pull-to-par saat jatuh tempo (redemption di 100).
         </p>
       </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-slate-900">5. Perbandingan Kupon Tahunan</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Stat
+            label={`Kupon/Tahun ${oldBond.name} (Tetap Hold)`}
+            value={formatCurrency(data.couponComparison.oldAnnualCoupon, oldBond.currency)}
+            highlight={data.couponComparison.sameCurrency && (data.couponComparison.difference ?? 0) <= 0}
+          />
+          <Stat
+            label={`Kupon/Tahun ${newBond.name} (Switching)`}
+            value={formatCurrency(data.couponComparison.newAnnualCoupon, newBond.currency)}
+            highlight={data.couponComparison.sameCurrency && (data.couponComparison.difference ?? 0) > 0}
+          />
+          {data.couponComparison.sameCurrency ? (
+            <Stat
+              label="Selisih Kupon Tahunan"
+              value={`${data.couponComparison.difference! >= 0 ? "+" : ""}${formatCurrency(data.couponComparison.difference!, newBond.currency)}`}
+            />
+          ) : (
+            <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+              Mata uang berbeda ({oldBond.currency} vs {newBond.currency}) — selisih nominal tidak dibandingkan langsung.
+            </div>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {data.couponComparison.sameCurrency
+            ? (data.couponComparison.difference ?? 0) > 0
+              ? `Secara kupon, switching menguntungkan — ${newBond.name} memberi pendapatan kupon tahunan lebih besar (nominal barunya lebih besar dan/atau kuponnya lebih tinggi).`
+              : (data.couponComparison.difference ?? 0) < 0
+                ? `Secara kupon, switching merugikan — tetap hold ${oldBond.name} memberi pendapatan kupon tahunan lebih besar.`
+                : "Pendapatan kupon tahunan kedua opsi sama besar."
+            : "Bandingkan kedua angka kupon tahunan di atas sesuai kebutuhan mata uang Anda."}
+        </p>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-sm font-semibold text-slate-900">6. Perbandingan Duration</h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Stat
+            label={`Duration ${oldBond.name} (Tetap Hold)`}
+            value={`${formatNumber(data.durationComparison.oldDuration, 2)} tahun`}
+            highlight={data.durationComparison.shorter === "stay"}
+          />
+          <Stat
+            label={`Duration ${newBond.name} (Switching)`}
+            value={`${formatNumber(data.durationComparison.newDuration, 2)} tahun`}
+            highlight={data.durationComparison.shorter === "switch"}
+          />
+          <Stat
+            label="Selisih Duration"
+            value={`${data.durationComparison.difference >= 0 ? "+" : ""}${formatNumber(data.durationComparison.difference, 2)} tahun`}
+          />
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          {data.durationComparison.shorter === "switch"
+            ? `Duration ${newBond.name} lebih pendek — dana Anda rata-rata "tertanam" lebih singkat dan lebih sedikit terpapar risiko perubahan suku bunga dibanding tetap hold ${oldBond.name}.`
+            : data.durationComparison.shorter === "stay"
+              ? `Duration ${oldBond.name} lebih pendek — kalau tetap hold, dana Anda rata-rata "tertanam" lebih singkat dibanding switching ke ${newBond.name}.`
+              : "Duration kedua obligasi praktis sama."}{" "}
+          Macaulay Duration = rata-rata tertimbang waktu (tahun) sampai seluruh arus kas (kupon + pokok) diterima,
+          didiskon pada YTM masing-masing obligasi.
+        </p>
+      </div>
     </div>
   );
 }

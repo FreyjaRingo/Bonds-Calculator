@@ -26,6 +26,7 @@ import {
   dateOnly,
   workday,
   holidaySet,
+  macaulayDuration,
 } from "@/lib/finance";
 
 export interface SwitchingInput {
@@ -63,6 +64,22 @@ export interface SwitchingResult {
     switchScenario: BepProjection;
     stayScenario: BepProjection;
     faster: "switch" | "stay" | "equal" | "neither" | "already-broke-even";
+  };
+  couponComparison: {
+    /** Annual coupon income if staying, on the original nominal (old bond's own currency). */
+    oldAnnualCoupon: number;
+    /** Annual coupon income after switching, on the new nominal (new bond's own currency). */
+    newAnnualCoupon: number;
+    /** Only meaningful when both bonds share a currency -- null otherwise. */
+    difference: number | null;
+    sameCurrency: boolean;
+  };
+  durationComparison: {
+    /** Macaulay duration in years, discounted at each bond's own current YTM. */
+    oldDuration: number;
+    newDuration: number;
+    difference: number;
+    shorter: "switch" | "stay" | "equal";
   };
 }
 
@@ -186,6 +203,26 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
     faster = switchScenario.daysFromToday < stayScenario.daysFromToday ? "switch" : "stay";
   }
 
+  const oldAnnualCoupon = oldNominal * input.oldBond.couponRate;
+  const newAnnualCoupon = newNominal * input.newBond.couponRate;
+  const sameCurrency = input.oldBond.currency === input.newBond.currency;
+  const couponComparison = {
+    oldAnnualCoupon,
+    newAnnualCoupon,
+    difference: sameCurrency ? newAnnualCoupon - oldAnnualCoupon : null,
+    sameCurrency,
+  };
+
+  const oldDuration = macaulayDuration(input.oldBond, oldSettle, redemption.data.sell.ytm);
+  const newDuration = macaulayDuration(input.newBond, newSettle, newBondSubscription.data.ytm);
+  const durationDiff = newDuration - oldDuration;
+  const durationComparison = {
+    oldDuration,
+    newDuration,
+    difference: durationDiff,
+    shorter: (Math.abs(durationDiff) < 1e-9 ? "equal" : durationDiff < 0 ? "switch" : "stay") as "switch" | "stay" | "equal",
+  };
+
   return {
     ok: true,
     data: {
@@ -200,6 +237,8 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
       extraNominal,
       newBondSubscription: newBondSubscription.data,
       bep: { shortfall, switchScenario, stayScenario, faster },
+      couponComparison,
+      durationComparison,
     },
   };
 }

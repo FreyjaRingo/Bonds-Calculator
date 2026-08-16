@@ -432,6 +432,53 @@ export function bondYield(
   return y;
 }
 
+/**
+ * Macaulay duration (in years) — the present-value-weighted average time to a
+ * bond's remaining cash flows, discounted at `yieldRate`. Always uses the bond's
+ * real coupon schedule (no "forceQuarterly" synthetic-schedule quirk — that's
+ * specific to how the source workbook computes YIELD(), not a real duration concept).
+ * Not a port of an Excel formula; used for the Switching calculator's duration comparison.
+ */
+export function macaulayDuration(bond: BondInput, settlement: Date, yieldRate: number, redemption = 100): number {
+  const settle = dateOnly(settlement);
+  const maturity = dateOnly(bond.maturityDate);
+  const basis = basisForCurrency(bond.currency);
+  const freqNum = frequencyNumber(bond.couponFrequency);
+  const months = frequencyMonths(bond.couponFrequency);
+
+  const { prev, next } = findCouponBounds(bond, settle);
+  const denomDays = daysBasis(basis, prev, next);
+  const dscDays = daysBasis(basis, settle, next);
+  const dscOverE = denomDays > 0 ? dscDays / denomDays : 0;
+
+  const dates: Date[] = [];
+  let cursor = next;
+  while (cursor <= maturity) {
+    dates.push(cursor);
+    cursor = addMonths(cursor, months);
+  }
+  if (dates.length === 0 || !sameDate(dates[dates.length - 1], maturity)) {
+    dates.push(maturity);
+  }
+
+  const couponPer100 = (100 * bond.couponRate) / freqNum;
+  const cashflows = dates.map((d, i) => ({
+    n: i + 1,
+    amount: i === dates.length - 1 ? couponPer100 + redemption : couponPer100,
+  }));
+
+  let weightedSum = 0;
+  let totalPV = 0;
+  for (const cf of cashflows) {
+    const exp = cf.n - 1 + dscOverE;
+    const tYears = exp / freqNum;
+    const pv = cf.amount / Math.pow(1 + yieldRate / freqNum, exp);
+    weightedSum += tYears * pv;
+    totalPV += pv;
+  }
+  return totalPV > 0 ? weightedSum / totalPV : 0;
+}
+
 // ---------------------------------------------------------------------------
 // Subscription calculator (mirrors "Kalkulator" sheet / HitungBondIndikatifManual)
 // ---------------------------------------------------------------------------
