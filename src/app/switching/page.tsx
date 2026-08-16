@@ -244,12 +244,12 @@ export default function SwitchingPage() {
           <Field label="Harga Beli Hari Ini (MBI Jual, per 100)">
             <TextInput type="number" min={0} step="0.001" value={newBondBuyPriceToday} onChange={(e) => setNewBondBuyPriceToday(e.target.value)} />
           </Field>
-          <p className="rounded border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+          <p className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
             Nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued
             interest) dibagi harga beli obligasi baru — bukan nominal yang sama.
           </p>
           {newBond && (
-            <div className="rounded border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+            <div className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
               <p>
                 {newBond.currency} · kupon <span className="num">{formatPercent(newBond.couponRate, 3)}</span> ·{" "}
                 {newBond.couponFrequency}
@@ -370,7 +370,7 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
                 tone={data.couponComparison.difference! >= 0 ? "positive" : "negative"}
               />
             ) : (
-              <div className="flex items-center rounded-md border border-border bg-surface-2 p-3.5 text-xs text-ink-muted">
+              <div className="flex items-center border border-border bg-surface-2 p-3.5 text-xs text-ink-muted">
                 Mata uang berbeda ({oldBond.currency} vs {newBond.currency}) — selisih nominal tidak dibandingkan langsung.
               </div>
             )}
@@ -430,7 +430,7 @@ function BepCard({
   highlight: boolean;
 }) {
   return (
-    <div className={`rounded-md border p-4 ${highlight ? "border-positive/30 bg-positive-soft" : "border-border bg-surface"}`}>
+    <div className={`border p-4 ${highlight ? "border-positive/30 bg-positive-soft" : "border-border bg-surface"}`}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{title}</p>
       {projection.daysFromToday == null ? (
         <p className="mt-1 text-sm text-ink-muted">Tidak balik modal sampai jatuh tempo.</p>

@@ -63,7 +63,7 @@ export function BondCombobox({ value, onChange }: BondComboboxProps) {
         placeholder="Cari nama obligasi atau ISIN..."
       />
       {open && (
-        <div className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-surface">
+        <div className="absolute z-10 mt-1 max-h-64 w-full overflow-auto border border-border bg-surface">
           {loading && <div className="px-3 py-2 text-sm text-ink-faint">Mencari...</div>}
           {!loading && results.length === 0 && (
             <div className="px-3 py-2 text-sm text-ink-faint">Tidak ada obligasi ditemukan.</div>

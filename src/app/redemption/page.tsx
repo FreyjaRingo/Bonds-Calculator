@@ -151,7 +151,7 @@ export default function RedemptionPage() {
           </div>
 
           {bond && (
-            <div className="rounded border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+            <div className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
               <p className="flex flex-wrap items-center gap-1.5">
                 {bond.currency} · kupon <span className="num">{formatPercent(bond.couponRate, 3)}</span> · {bond.couponFrequency}
                 {bond.hasLockUp && <Pill tone="warning">LOCK-UP</Pill>}

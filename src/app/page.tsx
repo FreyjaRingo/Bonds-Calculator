@@ -40,7 +40,7 @@ export default function Home() {
           diakses seluruh tim.
         </p>
       </div>
-      <div className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         {tools.map((tool) => (
           <Link key={tool.href} href={tool.href} className="group bg-surface p-5 transition-colors hover:bg-surface-2">
             <span className="num text-xs font-semibold text-accent-strong">{tool.label}</span>

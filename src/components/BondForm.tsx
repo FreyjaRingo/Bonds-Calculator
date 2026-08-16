@@ -104,7 +104,7 @@ export function BondForm({ initial, onClose, onSaved }: BondFormProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-accent-ink/50 p-4">
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/70 p-4">
       <Panel className="max-h-[90vh] w-full max-w-2xl overflow-auto p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-ink">{isEdit ? "Edit Obligasi" : "Tambah Obligasi Baru"}</h2>
@@ -163,7 +163,7 @@ export function BondForm({ initial, onClose, onSaved }: BondFormProps) {
             </Field>
           </div>
 
-          <div className="rounded border border-border p-4">
+          <div className="border border-border p-4">
             <Field label="Tipe Kupon Awal">
               <Select value={form.couponType} onChange={(e) => update("couponType", e.target.value as FormState["couponType"])}>
                 <option value="REGULAR">REGULAR</option>

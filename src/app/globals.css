@@ -1,57 +1,58 @@
 @import "tailwindcss";
 
 /*
-  Design system: "ledger" — a warm-ivory, gold-accented dashboard that echoes
-  the source Excel workbook's own gold section-header convention. Numbers are
-  set in a monospace face throughout so the actual content of this tool
-  (financial figures) lines up and reads cleanly.
+  Design system: "terminal" — a dark, gold-on-black professional finance
+  look modeled on trading-terminal convention (Bloomberg's black/amber
+  formula) using Maybank's own "dark shade of yellow" instead of raw brand
+  yellow. Dense, low-decoration, numbers-first. Dark is the primary mode;
+  light is the deviation (prefers-color-scheme: light).
 */
 
 :root {
-  --bg: #faf7ef;
-  --surface: #ffffff;
-  --surface-2: #f1ebda;
-  --border: #e3dbc3;
-  --ink: #18160f;
-  --ink-muted: #6b6250;
-  --ink-faint: #a89f89;
+  --bg: #100f0b;
+  --surface: #1a1814;
+  --surface-2: #24211a;
+  --border: #332d20;
+  --ink: #ece6d7;
+  --ink-muted: #928a73;
+  --ink-faint: #59533f;
 
-  --accent: #f2a900;
-  --accent-strong: #b8790a;
-  --accent-ink: #171512;
-  --accent-soft: #fbecc4;
+  --accent: #d4a017;
+  --accent-strong: #f0bc3c;
+  --accent-ink: #100f0b;
+  --accent-soft: #241d0c;
 
-  --positive: #276749;
-  --positive-soft: #e3efe6;
-  --negative: #a3291e;
-  --negative-soft: #f6e5e2;
-  --warning: #9c6b12;
-  --warning-soft: #f2e6cb;
+  --positive: #4fae75;
+  --positive-soft: #16241b;
+  --negative: #e2685c;
+  --negative-soft: #2b1815;
+  --warning: #d98a3d;
+  --warning-soft: #2a1f10;
 
-  color-scheme: light dark;
+  color-scheme: dark light;
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --bg: #15130d;
-    --surface: #1e1b12;
-    --surface-2: #2a2518;
-    --border: #3a331f;
-    --ink: #f3efe1;
-    --ink-muted: #aba48d;
-    --ink-faint: #6f684f;
+    --bg: #f7f4ec;
+    --surface: #ffffff;
+    --surface-2: #ece6d4;
+    --border: #ddd4b9;
+    --ink: #17150e;
+    --ink-muted: #665e4b;
+    --ink-faint: #a89f87;
 
-    --accent: #f2b705;
-    --accent-strong: #ffcb3d;
-    --accent-ink: #15130d;
-    --accent-soft: #3a2f0c;
+    --accent: #9c740c;
+    --accent-strong: #7a5a08;
+    --accent-ink: #ffffff;
+    --accent-soft: #f2e6c4;
 
-    --positive: #5bab7f;
-    --positive-soft: #1c2f22;
-    --negative: #e07568;
-    --negative-soft: #372019;
-    --warning: #d6a23a;
-    --warning-soft: #35290f;
+    --positive: #226b45;
+    --positive-soft: #e3efe6;
+    --negative: #a12f22;
+    --negative-soft: #f6e4e1;
+    --warning: #9c5f13;
+    --warning-soft: #f2e6c8;
   }
 }
 
@@ -86,6 +87,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: 14px;
 }
 
 h1,
@@ -104,6 +106,11 @@ textarea {
 
 input::placeholder {
   color: var(--ink-faint);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* Financial figures line up in a monospace face with tabular numerals. */

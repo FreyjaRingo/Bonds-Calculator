@@ -64,7 +64,7 @@ export default function SubscriptionPage() {
             <TextInput type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} />
           </Field>
           {bond && (
-            <div className="rounded border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+            <div className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
               <p>
                 {bond.currency} · kupon <span className="num">{formatPercent(bond.couponRate, 3)}</span> ·{" "}
                 {bond.couponFrequency}
