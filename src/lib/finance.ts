@@ -321,18 +321,40 @@ function excelRate(nper: number, pmt: number, pv: number, fv: number, guess: num
   return rate;
 }
 
+export type MonthlyYieldMode = "rate" | "forceQuarterly";
+
+export interface BondYieldOptions {
+  /**
+   * How to compute YTM for Monthly-coupon bonds — the two source sheets disagree:
+   * - "rate" (default): mirrors the Redemption sheet's B30/C30, which special-cases
+   *   Monthly bonds via RATE(nper-in-months, ...)*12 against the bond's real monthly
+   *   coupon schedule.
+   * - "forceQuarterly": mirrors the Kalkulator sheet's B33, which always calls the
+   *   native YIELD() with frequency forced to 4 for both Quarterly and Monthly bonds
+   *   (Excel's YIELD only accepts 1/2/4) — Excel then builds its own synthetic
+   *   quarterly coupon schedule (stepping back 3 months from maturity), ignoring the
+   *   bond's real monthly payment dates entirely for this calculation only.
+   */
+  monthlyMode?: MonthlyYieldMode;
+}
+
 /**
- * Bond yield-to-maturity (annualized), equivalent to Excel's YIELD() for standard bonds,
- * and to RATE()*freq for Monthly-coupon bonds (mirroring the sheet's B30/C30 formulas).
- * `cleanPrice` and the redemption value are both per-100 face value.
+ * Bond yield-to-maturity (annualized), equivalent to Excel's YIELD() for standard
+ * (non-Monthly) bonds. `cleanPrice` and the redemption value are both per-100 face value.
  */
-export function bondYield(bond: BondInput, settlement: Date, cleanPrice: number, redemption = 100): number {
+export function bondYield(
+  bond: BondInput,
+  settlement: Date,
+  cleanPrice: number,
+  redemption = 100,
+  options: BondYieldOptions = {}
+): number {
   const settle = dateOnly(settlement);
   const maturity = dateOnly(bond.maturityDate);
-  const freqNum = frequencyNumber(bond.couponFrequency);
   const basis = basisForCurrency(bond.currency);
+  const monthlyMode = options.monthlyMode ?? "rate";
 
-  if (bond.couponFrequency === "Monthly") {
+  if (bond.couponFrequency === "Monthly" && monthlyMode === "rate") {
     const yearsToMaturity = basis === "US30360" ? days360(settle, maturity) / 360 : yearFracActualActual(settle, maturity);
     const nper = Math.ceil(yearsToMaturity * 12);
     const { prev, next } = findCouponBounds(bond, settle);
@@ -342,25 +364,42 @@ export function bondYield(bond: BondInput, settlement: Date, cleanPrice: number,
     return excelRate(nper, pmt, pv, redemption, bond.couponRate / 12) * 12;
   }
 
-  const { prev, next } = findCouponBounds(bond, settle);
+  // freqNum/months drive the coupon schedule used for the yield equation itself. For
+  // Monthly bonds in "forceQuarterly" mode this is deliberately 4/3 (synthetic
+  // quarterly schedule), not the bond's real 12/1 (monthly) -- matching Excel's own
+  // YIELD() behavior when frequency is forced to 4.
+  const isForcedMonthly = bond.couponFrequency === "Monthly" && monthlyMode === "forceQuarterly";
+  const freqNum = isForcedMonthly ? 4 : frequencyNumber(bond.couponFrequency);
+  const months = isForcedMonthly ? 3 : frequencyMonths(bond.couponFrequency);
+
+  // Coupon bounds (prev/next) around settlement, stepping by `months` back from
+  // maturity -- same walk as findCouponBounds, but using the (possibly synthetic)
+  // frequency above rather than the bond's own coupon-type/stub logic.
+  let temp = maturity;
+  let next = temp;
+  while (temp > settle) {
+    next = temp;
+    temp = addMonths(temp, -months);
+  }
+  const prev = temp;
+
   const denomDays = daysBasis(basis, prev, next);
   const dscDays = daysBasis(basis, settle, next);
   const dscOverE = denomDays > 0 ? dscDays / denomDays : 0;
-  const accruedPer100 = accruedInterest(bond, prev, settle, next, 100);
+  const couponPer100 = (100 * bond.couponRate) / freqNum;
+  const accruedPer100 = denomDays > 0 ? couponPer100 * ((denomDays - dscDays) / denomDays) : 0;
 
   // Build the list of coupon dates from `next` through maturity.
-  const months = frequencyMonths(bond.couponFrequency);
   const dates: Date[] = [];
-  let temp = next;
-  while (temp <= maturity) {
-    dates.push(temp);
-    temp = addMonths(temp, months);
+  let cursor = next;
+  while (cursor <= maturity) {
+    dates.push(cursor);
+    cursor = addMonths(cursor, months);
   }
   if (dates.length === 0 || !sameDate(dates[dates.length - 1], maturity)) {
     dates.push(maturity);
   }
 
-  const couponPer100 = (100 * bond.couponRate) / freqNum;
   const cashflows = dates.map((d, i) => ({
     n: i + 1,
     amount: i === dates.length - 1 ? couponPer100 + redemption : couponPer100,
@@ -448,7 +487,7 @@ export function calcSubscription(bond: BondInput, input: SubscriptionInput, holi
   const couponSchedule = generateCouponSchedule(bond, next, maturity, input.nominal, taxRate, refundTax);
   const totalCouponsForward = couponSchedule.reduce((s, r) => s + r.totalReceived, 0);
 
-  const ytm = bondYield(bond, settlementDate, input.price);
+  const ytm = bondYield(bond, settlementDate, input.price, 100, { monthlyMode: "forceQuarterly" });
 
   const yearsToMaturity = Math.round((daysBetween(settlementDate, maturity) / 365) * 100) / 100;
 
