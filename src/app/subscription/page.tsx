@@ -99,7 +99,7 @@ export default function SubscriptionPage() {
             <EmptyState message="Lengkapi nominal, harga, dan tanggal transaksi yang valid." />
           )}
           {bond && result && !result.ok && <ErrorState message={result.error} />}
-          {bond && result && result.ok && <ResultView bond={bond} data={result.data} />}
+          {bond && result && result.ok && <ResultView bond={bond} data={result.data} nominal={Number(nominal)} />}
         </div>
       </div>
     </div>
@@ -129,7 +129,14 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-function ResultView({ bond, data }: { bond: BondDTO; data: SubscriptionResult }) {
+function ResultView({ bond, data, nominal }: { bond: BondDTO; data: SubscriptionResult; nominal: number }) {
+  const principalReturned = nominal;
+  const totalCouponReceived = data.totalCouponsForward;
+  const totalFundsAtEnd = principalReturned + totalCouponReceived;
+  const initialInvestment = data.totalAmount;
+  const difference = totalFundsAtEnd - initialInvestment;
+  const roiGross = initialInvestment !== 0 ? difference / initialInvestment : 0;
+
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -141,6 +148,22 @@ function ResultView({ bond, data }: { bond: BondDTO; data: SubscriptionResult })
         <Stat label="Principal" value={formatCurrency(data.principal, bond.currency)} />
         <Stat label="Total Dana Didebit" value={formatCurrency(data.totalAmount, bond.currency)} highlight />
         <Stat label="Indicative YTM" value={formatPercent(data.ytm)} highlight />
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="bg-amber-400 px-4 py-2">
+          <h2 className="text-sm font-semibold text-slate-900">Summary Cash Flow</h2>
+        </div>
+        <table className="w-full text-sm">
+          <tbody className="divide-y divide-slate-100">
+            <SummaryRow label="Pengembalian Pokok" value={formatCurrency(principalReturned, bond.currency)} />
+            <SummaryRow label="Total Kupon Diterima / Gross" value={formatCurrency(totalCouponReceived, bond.currency)} />
+            <SummaryRow label="Total Dana Diterima Pada Akhir Periode" value={formatCurrency(totalFundsAtEnd, bond.currency)} />
+            <SummaryRow label="Investasi Awal" value={formatCurrency(initialInvestment, bond.currency)} />
+            <SummaryRow label="Selisih" value={formatCurrency(difference, bond.currency)} emphasis />
+            <SummaryRow label="ROI Gross" value={formatPercent(roiGross, 2)} emphasis />
+          </tbody>
+        </table>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -183,6 +206,15 @@ function ResultView({ bond, data }: { bond: BondDTO; data: SubscriptionResult })
         </div>
       </div>
     </div>
+  );
+}
+
+function SummaryRow({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
+  return (
+    <tr className={emphasis ? "bg-slate-50" : undefined}>
+      <td className={`px-4 py-2 font-medium text-slate-700 ${emphasis ? "font-semibold" : ""}`}>{label}</td>
+      <td className={`px-4 py-2 text-right ${emphasis ? "font-semibold text-slate-900" : "text-slate-700"}`}>{value}</td>
+    </tr>
   );
 }
 

@@ -1,10 +1,14 @@
+const CURRENCY_SYMBOLS: Record<"IDR" | "USD", string> = { IDR: "Rp", USD: "$" };
+
+/**
+ * Currency amounts always use Indonesian-style separators (period for thousands,
+ * comma for decimals) regardless of currency, matching how the source Excel
+ * workbook displays them (e.g. "$ 100.000,00") -- only the symbol changes with
+ * the bond's currency.
+ */
 export function formatCurrency(amount: number, currency: "IDR" | "USD"): string {
-  return new Intl.NumberFormat(currency === "IDR" ? "id-ID" : "en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  const number = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+  return `${CURRENCY_SYMBOLS[currency]} ${number}`;
 }
 
 export function formatDate(date: Date | string): string {
@@ -13,11 +17,12 @@ export function formatDate(date: Date | string): string {
 }
 
 export function formatPercent(value: number, digits = 4): string {
-  return `${(value * 100).toFixed(digits)}%`;
+  const number = new Intl.NumberFormat("id-ID", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value * 100);
+  return `${number}%`;
 }
 
 export function formatNumber(value: number, digits = 2): string {
-  return new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+  return new Intl.NumberFormat("id-ID", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
 }
 
 /** yyyy-MM-dd for <input type="date"> value/defaultValue. */
