@@ -9,9 +9,28 @@ import { workday, holidaySet, type Holiday } from "@/lib/finance";
 import { matchBondByCode } from "@/lib/bondCodeMatch";
 import type { PriceQuoteRow } from "@/lib/priceQuoteParser";
 import { formatCurrency, formatDate, formatNumber, formatPercent, toDateInputValue } from "@/lib/format";
-import { Field, TextInput, PrimaryButton, SecondaryButton, Panel, SectionPanel, Stat, Pill, VerdictBanner, EmptyState, ErrorState, type Tone } from "@/components/ui";
+import {
+  Field,
+  TextInput,
+  PrimaryButton,
+  SecondaryButton,
+  Panel,
+  SectionHeader,
+  SectionPanel,
+  Stat,
+  Pill,
+  VerdictBanner,
+  EmptyState,
+  ErrorState,
+  Table,
+  Thead,
+  type Tone,
+} from "@/components/ui";
+
+type SwitchingMode = "recommend" | "specific";
 
 export default function SwitchingPage() {
+  const [mode, setMode] = useState<SwitchingMode>("recommend");
   const [priceSheet, setPriceSheet] = useState<{ asOfDate: string | null; rows: PriceQuoteRow[] } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -131,6 +150,58 @@ export default function SwitchingPage() {
     holidays,
   ]);
 
+  // --- Opsi 1: rekomendasi otomatis dari seluruh database obligasi ---
+  const [allBonds, setAllBonds] = useState<BondDTO[]>([]);
+  useEffect(() => {
+    fetch("/api/bonds?limit=400")
+      .then((r) => r.json())
+      .then((data: BondDTO[]) => setAllBonds(data))
+      .catch(() => setAllBonds([]));
+  }, []);
+
+  const commonInputsReady = useMemo(() => {
+    if (!oldBond) return null;
+    const nominalNum = Number(originalNominal);
+    const origPriceNum = Number(originalBuyPrice);
+    const sellPriceNum = Number(oldBondSellPriceToday);
+    if (![nominalNum, origPriceNum, sellPriceNum].every((n) => Number.isFinite(n) && n > 0)) return null;
+    if (!originalBuyTradeDate || !originalBuySettlementDate || !todayTradeDate || !oldBondSellSettlementDate) return null;
+    return { nominalNum, origPriceNum, sellPriceNum };
+  }, [oldBond, originalNominal, originalBuyPrice, oldBondSellPriceToday, originalBuyTradeDate, originalBuySettlementDate, todayTradeDate, oldBondSellSettlementDate]);
+
+  const candidates = useMemo<CandidateEval[]>(() => {
+    if (!oldBond || !priceSheet || !commonInputsReady || allBonds.length === 0) return [];
+    const out: CandidateEval[] = [];
+    for (const cand of allBonds) {
+      if (cand.id === oldBond.id || cand.currency !== oldBond.currency) continue;
+      const priceRow = priceSheet.rows.find((r) => matchBondByCode(r.productCode, [cand])?.id === cand.id);
+      if (!priceRow?.mbiJual) continue;
+      const res = calcSwitching(
+        {
+          oldBond: bondDtoToInput(oldBond),
+          originalNominal: commonInputsReady.nominalNum,
+          originalBuyTradeDate: new Date(originalBuyTradeDate),
+          originalBuySettlementDate: new Date(originalBuySettlementDate),
+          originalBuyPrice: commonInputsReady.origPriceNum,
+          todayTradeDate: new Date(todayTradeDate),
+          oldBondSellSettlementDate: new Date(oldBondSellSettlementDate),
+          oldBondSellPriceToday: commonInputsReady.sellPriceNum,
+          newBond: bondDtoToInput(cand),
+          newBondBuyPriceToday: priceRow.mbiJual,
+        },
+        holidays
+      );
+      if (res.ok) out.push({ bond: cand, buyPriceToday: priceRow.mbiJual, data: res.data });
+    }
+    return out;
+  }, [oldBond, priceSheet, commonInputsReady, allBonds, originalBuyTradeDate, originalBuySettlementDate, todayTradeDate, oldBondSellSettlementDate, holidays]);
+
+  function pickCandidate(cand: CandidateEval) {
+    setNewBond(cand.bond);
+    setNewBondBuyPriceToday(String(cand.buyPriceToday));
+    setMode("specific");
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -175,7 +246,28 @@ export default function SwitchingPage() {
         )}
       </Panel>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="flex border border-border">
+        <button
+          type="button"
+          onClick={() => setMode("recommend")}
+          className={`flex-1 px-4 py-2.5 text-sm font-semibold transition-colors ${
+            mode === "recommend" ? "bg-accent text-accent-ink" : "bg-surface text-ink-muted hover:bg-surface-2"
+          }`}
+        >
+          Opsi 1 — Cari Rekomendasi
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("specific")}
+          className={`flex-1 border-l border-border px-4 py-2.5 text-sm font-semibold transition-colors ${
+            mode === "specific" ? "bg-accent text-accent-ink" : "bg-surface text-ink-muted hover:bg-surface-2"
+          }`}
+        >
+          Opsi 2 — Switching ke Obligasi Tertentu
+        </button>
+      </div>
+
+      <div className={mode === "specific" ? "grid gap-6 lg:grid-cols-2" : "grid gap-6"}>
         <Panel className="space-y-4 p-5">
           <h2 className="text-sm font-semibold text-ink">Obligasi yang Dipegang Sekarang (Jual)</h2>
           <Field label="Obligasi">
@@ -237,30 +329,192 @@ export default function SwitchingPage() {
           </div>
         </Panel>
 
-        <Panel className="space-y-4 p-5">
-          <h2 className="text-sm font-semibold text-ink">Obligasi Tujuan Switching (Beli)</h2>
-          <Field label="Obligasi">
-            <BondCombobox value={newBond} onChange={setNewBond} />
-          </Field>
-          <Field label="Harga Beli Hari Ini (MBI Jual, per 100)">
-            <TextInput type="number" min={0} step="0.001" value={newBondBuyPriceToday} onChange={(e) => setNewBondBuyPriceToday(e.target.value)} />
-          </Field>
-          <p className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
-            Nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued
-            interest) dibagi harga beli obligasi baru — bukan nominal yang sama.
-          </p>
-          {newBond && <BondSummaryBox bond={newBond} />}
-        </Panel>
-      </div>
-
-      <div>
-        {(!oldBond || !newBond) && <EmptyState message="Pilih obligasi lama dan obligasi tujuan untuk mulai menghitung." />}
-        {oldBond && newBond && !result && <EmptyState message="Lengkapi semua nominal, harga, dan tanggal yang valid." />}
-        {oldBond && newBond && result && !result.ok && <ErrorState message={result.error} />}
-        {oldBond && newBond && result && result.ok && (
-          <ResultView oldBond={oldBond} newBond={newBond} data={result.data} />
+        {mode === "specific" && (
+          <Panel className="space-y-4 p-5">
+            <h2 className="text-sm font-semibold text-ink">Obligasi Tujuan Switching (Beli)</h2>
+            <Field label="Obligasi">
+              <BondCombobox value={newBond} onChange={setNewBond} />
+            </Field>
+            <Field label="Harga Beli Hari Ini (MBI Jual, per 100)">
+              <TextInput type="number" min={0} step="0.001" value={newBondBuyPriceToday} onChange={(e) => setNewBondBuyPriceToday(e.target.value)} />
+            </Field>
+            <p className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+              Nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued
+              interest) dibagi harga beli obligasi baru — bukan nominal yang sama.
+            </p>
+            {newBond && <BondSummaryBox bond={newBond} />}
+          </Panel>
         )}
       </div>
+
+      {mode === "recommend" && (
+        <RecommendationTabs oldBond={oldBond} priceSheet={priceSheet} commonInputsReady={!!commonInputsReady} candidates={candidates} onPick={pickCandidate} />
+      )}
+
+      {mode === "specific" && (
+        <div>
+          {(!oldBond || !newBond) && <EmptyState message="Pilih obligasi lama dan obligasi tujuan untuk mulai menghitung." />}
+          {oldBond && newBond && !result && <EmptyState message="Lengkapi semua nominal, harga, dan tanggal yang valid." />}
+          {oldBond && newBond && result && !result.ok && <ErrorState message={result.error} />}
+          {oldBond && newBond && result && result.ok && (
+            <ResultView oldBond={oldBond} newBond={newBond} data={result.data} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CandidateEval {
+  bond: BondDTO;
+  buyPriceToday: number;
+  data: SwitchingResult;
+}
+
+type RecTabKey = "yield" | "kupon" | "bep" | "duration" | "pricing";
+
+const REC_TABS: { key: RecTabKey; label: string }[] = [
+  { key: "yield", label: "Yield Tertinggi" },
+  { key: "kupon", label: "Kupon Tertinggi" },
+  { key: "bep", label: "BEP Tercepat" },
+  { key: "duration", label: "Duration Terpendek" },
+  { key: "pricing", label: "Untung Pricing" },
+];
+
+function sortCandidates(list: CandidateEval[], key: RecTabKey): CandidateEval[] {
+  const arr = [...list];
+  switch (key) {
+    case "yield":
+      return arr.sort((a, b) => b.data.newBondSubscription.ytm - a.data.newBondSubscription.ytm);
+    case "kupon":
+      return arr.sort((a, b) => b.data.couponComparison.newAnnualCoupon - a.data.couponComparison.newAnnualCoupon);
+    case "bep":
+      return arr.sort((a, b) => {
+        const da = a.data.bep.switchScenario.daysFromToday;
+        const db = b.data.bep.switchScenario.daysFromToday;
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return da - db;
+      });
+    case "duration":
+      return arr.sort((a, b) => a.data.durationComparison.newDuration - b.data.durationComparison.newDuration);
+    case "pricing":
+      return arr.sort((a, b) => b.data.extraNominal - a.data.extraNominal);
+  }
+}
+
+/**
+ * Opsi 1: instead of asking for a specific target bond, evaluate every
+ * same-currency bond in the database that has a quoted price today (matched
+ * from the uploaded price sheet), then let the user rank the field by
+ * whichever criterion matters to them right now -- the same five criteria
+ * as the Opsi 2 scorecard, just applied across the whole universe instead of
+ * one pair.
+ */
+function RecommendationTabs({
+  oldBond,
+  priceSheet,
+  commonInputsReady,
+  candidates,
+  onPick,
+}: {
+  oldBond: BondDTO | null;
+  priceSheet: { asOfDate: string | null; rows: PriceQuoteRow[] } | null;
+  commonInputsReady: boolean;
+  candidates: CandidateEval[];
+  onPick: (c: CandidateEval) => void;
+}) {
+  const [tab, setTab] = useState<RecTabKey>("yield");
+
+  if (!oldBond) return <EmptyState message="Pilih obligasi yang dipegang sekarang untuk mulai mencari rekomendasi." />;
+  if (!priceSheet) return <EmptyState message="Upload tabel indikasi harga (PDF) untuk mencari kandidat switching hari ini." />;
+  if (!commonInputsReady) return <EmptyState message="Lengkapi nominal, harga jual hari ini, dan tanggal transaksi obligasi yang dipegang sekarang." />;
+  if (candidates.length === 0) {
+    return (
+      <EmptyState message={`Tidak ada obligasi ${oldBond.currency} lain dengan harga yang cocok di tabel indikasi harga yang diupload.`} />
+    );
+  }
+
+  const ranked = sortCandidates(candidates, tab).slice(0, 10);
+
+  return (
+    <div>
+      <SectionHeader index={1}>Rekomendasi Switching dari {oldBond.name}</SectionHeader>
+      <Panel className="space-y-3 p-3">
+        <p className="text-xs text-ink-muted">
+          Dievaluasi {candidates.length} obligasi {oldBond.currency} lain yang punya harga di tabel indikasi harga hari
+          ini. Top 10 ditampilkan per kriteria.
+        </p>
+        <div className="flex flex-wrap border border-border text-[13px]">
+          {REC_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`flex-1 whitespace-nowrap px-3 py-2 font-semibold transition-colors ${
+                tab === t.key ? "bg-accent text-accent-ink" : "bg-surface text-ink-muted hover:bg-surface-2"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <Table>
+          <Thead>
+            <tr>
+              <th className="px-2.5 py-2 text-left">#</th>
+              <th className="px-2.5 py-2 text-left">Kode</th>
+              <th className="px-2.5 py-2 text-right">YTM</th>
+              <th className="px-2.5 py-2 text-right">Kupon/Th</th>
+              <th className="px-2.5 py-2 text-right">BEP</th>
+              <th className="px-2.5 py-2 text-right">Duration</th>
+              <th className="px-2.5 py-2 text-right">Selisih Nominal</th>
+              <th className="px-2.5 py-2 text-right"></th>
+            </tr>
+          </Thead>
+          <tbody>
+            {ranked.map((c, i) => (
+              <tr key={c.bond.id} className="border-b border-border last:border-0 hover:bg-surface-2">
+                <td className="num px-2.5 py-1.5 text-ink-faint">{i + 1}</td>
+                <td className="px-2.5 py-1.5 font-semibold text-ink">
+                  {c.bond.name}
+                  {c.bond.hasLockUp && (
+                    <span className="ml-1.5">
+                      <Pill tone="warning">LOCK-UP</Pill>
+                    </span>
+                  )}
+                </td>
+                <td className={`num px-2.5 py-1.5 text-right ${tab === "yield" ? "font-semibold text-accent-strong" : "text-ink"}`}>
+                  {formatPercent(c.data.newBondSubscription.ytm, 2)}
+                </td>
+                <td className={`num px-2.5 py-1.5 text-right ${tab === "kupon" ? "font-semibold text-accent-strong" : "text-ink"}`}>
+                  {formatCurrency(c.data.couponComparison.newAnnualCoupon, c.bond.currency)}
+                </td>
+                <td className={`num px-2.5 py-1.5 text-right ${tab === "bep" ? "font-semibold text-accent-strong" : "text-ink"}`}>
+                  {c.data.bep.switchScenario.daysFromToday == null
+                    ? "—"
+                    : c.data.bep.switchScenario.daysFromToday === 0
+                      ? "Sudah BEP"
+                      : `${formatNumber(c.data.bep.switchScenario.daysFromToday / 365, 2)} th`}
+                </td>
+                <td className={`num px-2.5 py-1.5 text-right ${tab === "duration" ? "font-semibold text-accent-strong" : "text-ink"}`}>
+                  {formatNumber(c.data.durationComparison.newDuration, 2)} th
+                </td>
+                <td className={`num px-2.5 py-1.5 text-right ${tab === "pricing" ? "font-semibold text-accent-strong" : c.data.extraNominal >= 0 ? "text-positive" : "text-negative"}`}>
+                  {c.data.extraNominal >= 0 ? "+" : ""}
+                  {formatCurrency(c.data.extraNominal, c.bond.currency)}
+                </td>
+                <td className="px-2.5 py-1.5 text-right">
+                  <SecondaryButton type="button" onClick={() => onPick(c)} className="px-2 py-1 text-xs">
+                    Lihat Detail
+                  </SecondaryButton>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Panel>
     </div>
   );
 }

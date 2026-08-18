@@ -4,6 +4,8 @@ import { bondSchema } from "@/lib/bond-schema";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const limitParam = Number(request.nextUrl.searchParams.get("limit"));
+  const take = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 500) : 50;
   const bonds = await prisma.bond.findMany({
     where: q
       ? {
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest) {
         }
       : undefined,
     orderBy: { name: "asc" },
-    take: 50,
+    take,
   });
   return NextResponse.json(bonds);
 }
