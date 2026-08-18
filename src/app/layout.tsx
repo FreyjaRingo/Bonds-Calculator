@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#100f0b",
+  themeColor: "#ffc72c",
 };
 
 const navLinks = [
@@ -35,18 +35,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="id" className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
-        <header className="border-b border-border bg-surface">
+        <header className="border-b border-accent-strong/30 bg-accent">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="grid h-6 w-6 place-items-center bg-accent text-xs font-bold text-accent-ink">M</span>
-              <span className="text-sm font-semibold tracking-wide text-ink">BONDS CALCULATOR</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              {/* TODO: swap for the real Maybank logo once provided (public/maybank-logo.svg) */}
+              <span className="grid h-7 w-7 place-items-center bg-accent-ink text-xs font-bold text-accent">M</span>
+              <span className="text-sm font-semibold tracking-wide text-accent-ink">BONDS CALCULATOR</span>
             </Link>
             <nav className="flex gap-0.5 text-[13px] font-medium">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="px-3 py-1.5 text-ink-muted transition-colors hover:text-accent-strong"
+                  className="px-3 py-1.5 text-accent-ink/70 transition-colors hover:bg-accent-ink/10 hover:text-accent-ink"
                 >
                   {link.label}
                 </Link>

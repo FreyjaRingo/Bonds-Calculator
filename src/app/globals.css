@@ -1,58 +1,57 @@
 @import "tailwindcss";
 
 /*
-  Design system: "terminal" — a dark, gold-on-black professional finance
-  look modeled on trading-terminal convention (Bloomberg's black/amber
-  formula) using Maybank's own "dark shade of yellow" instead of raw brand
-  yellow. Dense, low-decoration, numbers-first. Dark is the primary mode;
-  light is the deviation (prefers-color-scheme: light).
+  Design system: Maybank house style — broken-white ground, bright brand
+  yellow as the accent (matching the source Excel workbook's own yellow
+  header bars), dense/professional layout. Light is the primary mode; dark
+  is the deviation (prefers-color-scheme: dark).
 */
 
 :root {
-  --bg: #100f0b;
-  --surface: #1a1814;
-  --surface-2: #24211a;
-  --border: #332d20;
-  --ink: #ece6d7;
-  --ink-muted: #928a73;
-  --ink-faint: #59533f;
+  --bg: #f8f5ec;
+  --surface: #ffffff;
+  --surface-2: #f1e9c8;
+  --border: #e6dcb8;
+  --ink: #1a1710;
+  --ink-muted: #6b6350;
+  --ink-faint: #a89f87;
 
-  --accent: #d4a017;
-  --accent-strong: #f0bc3c;
-  --accent-ink: #100f0b;
-  --accent-soft: #241d0c;
+  --accent: #ffc72c;
+  --accent-strong: #d9a300;
+  --accent-ink: #1a1710;
+  --accent-soft: #fff3d0;
 
-  --positive: #4fae75;
-  --positive-soft: #16241b;
-  --negative: #e2685c;
-  --negative-soft: #2b1815;
-  --warning: #d98a3d;
-  --warning-soft: #2a1f10;
+  --positive: #1e7b4d;
+  --positive-soft: #e1f0e7;
+  --negative: #b3271e;
+  --negative-soft: #f7e3e1;
+  --warning: #b5720a;
+  --warning-soft: #f5e7ce;
 
-  color-scheme: dark light;
+  color-scheme: light dark;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #f7f4ec;
-    --surface: #ffffff;
-    --surface-2: #ece6d4;
-    --border: #ddd4b9;
-    --ink: #17150e;
-    --ink-muted: #665e4b;
-    --ink-faint: #a89f87;
+    --bg: #16140d;
+    --surface: #201d14;
+    --surface-2: #2b2718;
+    --border: #3a331f;
+    --ink: #f3eedd;
+    --ink-muted: #aba48d;
+    --ink-faint: #6f684f;
 
-    --accent: #9c740c;
-    --accent-strong: #7a5a08;
-    --accent-ink: #ffffff;
-    --accent-soft: #f2e6c4;
+    --accent: #ffc72c;
+    --accent-strong: #ffd966;
+    --accent-ink: #16140d;
+    --accent-soft: #3d330f;
 
-    --positive: #226b45;
-    --positive-soft: #e3efe6;
-    --negative: #a12f22;
-    --negative-soft: #f6e4e1;
-    --warning: #9c5f13;
-    --warning-soft: #f2e6c8;
+    --positive: #4fae75;
+    --positive-soft: #1c2f22;
+    --negative: #e2685c;
+    --negative-soft: #2e1815;
+    --warning: #e2a23d;
+    --warning-soft: #332711;
   }
 }
 

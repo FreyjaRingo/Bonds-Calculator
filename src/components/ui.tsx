@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
-/** Gold section-header bar, echoing the source Excel workbook's own convention. */
+/** Bright-yellow section-header bar, matching the source Excel workbook's own gold headers. */
 export function SectionHeader({ children, index }: { children: ReactNode; index?: number }) {
   return (
-    <div className="flex items-center gap-2 border border-b-0 border-accent/40 bg-accent-soft px-3 py-1.5">
-      {index != null && <span className="num text-[11px] font-semibold text-accent-strong">{String(index).padStart(2, "0")}</span>}
-      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-accent-strong">{children}</h2>
+    <div className="flex items-center gap-2 bg-accent px-3 py-1.5">
+      {index != null && <span className="num text-[11px] font-semibold text-accent-ink/70">{String(index).padStart(2, "0")}</span>}
+      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-accent-ink">{children}</h2>
     </div>
   );
 }
