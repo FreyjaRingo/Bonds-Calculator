@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-accent-strong/30 bg-accent">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/Maybank-logo.png" alt="Maybank" width={480} height={270} priority className="h-10 w-auto" />
+              <Image src="/Maybank-logo.png" alt="Maybank" width={960} height={540} priority className="h-10 w-auto" />
               <span className="h-7 w-px bg-accent-ink/25" />
               <span className="text-sm font-semibold tracking-wide text-accent-ink">BONDS CALCULATOR</span>
             </Link>
