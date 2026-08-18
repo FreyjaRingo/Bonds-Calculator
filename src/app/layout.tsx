@@ -29,6 +29,7 @@ const navLinks = [
   { href: "/subscription", label: "Subscription" },
   { href: "/redemption", label: "Redemption" },
   { href: "/switching", label: "Switching" },
+  { href: "/price-indication", label: "Indikasi Harga" },
   { href: "/bonds", label: "Database Obligasi" },
 ];
 
@@ -37,10 +38,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="id" className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-bg text-ink">
         <header className="border-b border-accent-strong/30 bg-accent">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image src="/Maybank-logo.png" alt="Maybank" width={480} height={270} priority className="h-6 w-auto" />
-              <span className="h-4 w-px bg-accent-ink/25" />
+              <Image src="/Maybank-logo.png" alt="Maybank" width={480} height={270} priority className="h-10 w-auto" />
+              <span className="h-7 w-px bg-accent-ink/25" />
               <span className="text-sm font-semibold tracking-wide text-accent-ink">BONDS CALCULATOR</span>
             </Link>
             <nav className="flex gap-0.5 text-[13px] font-medium">

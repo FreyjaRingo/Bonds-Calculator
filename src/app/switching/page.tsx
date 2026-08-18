@@ -283,13 +283,16 @@ const FASTER_TONE: Record<SwitchingResult["bep"]["faster"], Tone> = {
 
 function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: BondDTO; data: SwitchingResult }) {
   const pricingFavorable = data.extraNominal > 0;
+  const newBuyPriceUsed = (data.newBondSubscription.principal / data.newNominal) * 100;
 
   return (
     <div className="space-y-6">
       <ProductTransitionCard oldBond={oldBond} newBond={newBond} />
 
+      <RecommendationPanel oldBond={oldBond} newBond={newBond} data={data} />
+
       <div>
-        <SectionPanel title="Sudah Selesai — Posisi Hari Ini" index={1}>
+        <SectionPanel title="Sudah Selesai — Posisi Hari Ini" index={2}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label={`Accrued Interest ${oldBond.name} (Jual)`} value={formatCurrency(data.redemption.sell!.accruedInterest, oldBond.currency)} />
             <Stat label="Dana Hasil Jual (Principal + Accrued)" value={formatCurrency(data.proceeds, oldBond.currency)} />
@@ -299,7 +302,7 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
       </div>
 
       <div>
-        <SectionPanel title="Untung/Rugi Secara Pricing (Switching)" index={2}>
+        <SectionPanel title="Untung/Rugi Secara Pricing (Switching)" index={3}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label={`Nominal ${oldBond.name} (Lama)`} value={formatCurrency(data.oldNominal, oldBond.currency)} />
             <Stat label={`Nominal ${newBond.name} (Baru)`} value={formatCurrency(data.newNominal, newBond.currency)} />
@@ -314,11 +317,22 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
               ? `Secara harga, switching menguntungkan — dana hasil jual bisa membeli nominal ${newBond.name} lebih besar dari nominal ${oldBond.name} yang dijual.`
               : `Secara harga, switching merugikan — dana hasil jual hanya cukup membeli nominal ${newBond.name} lebih kecil dari nominal ${oldBond.name} yang dijual.`}
           </p>
+          <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
+            <p>Detail perhitungan nominal baru:</p>
+            <p>
+              Cost/unit {newBond.name} = (Harga {formatNumber(newBuyPriceUsed, 3)} ÷ 100) + Accrued/unit{" "}
+              {formatNumber(data.accruedPerUnitNew, 6)} = {formatNumber(data.costPerUnitNew, 6)}
+            </p>
+            <p>
+              Nominal Baru = Dana Hasil Jual ÷ Cost/unit = {formatCurrency(data.proceeds, oldBond.currency)} ÷{" "}
+              {formatNumber(data.costPerUnitNew, 6)} = {formatCurrency(data.newNominal, newBond.currency)}
+            </p>
+          </div>
         </SectionPanel>
       </div>
 
       <div>
-        <SectionPanel title="Posisi Terhadap Modal Awal" index={3}>
+        <SectionPanel title="Posisi Terhadap Modal Awal" index={4}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label="Modal Awal (saat beli pertama)" value={formatCurrency(data.originalCapital, oldBond.currency)} />
             <Stat label="Nilai Terealisasi Hari Ini" value={formatCurrency(data.totalValueRealizedToday, oldBond.currency)} />
@@ -328,11 +342,17 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
               tone={data.profitVsCapitalToday >= 0 ? "positive" : "negative"}
             />
           </div>
+          <p className="num mt-3 border-t border-border pt-3 text-[11px] text-ink-faint">
+            Nilai Terealisasi − Modal Awal = {formatCurrency(data.totalValueRealizedToday, oldBond.currency)} −{" "}
+            {formatCurrency(data.originalCapital, oldBond.currency)} ={" "}
+            {data.profitVsCapitalToday >= 0 ? "+" : ""}
+            {formatCurrency(data.profitVsCapitalToday, oldBond.currency)}
+          </p>
         </SectionPanel>
       </div>
 
       <div>
-        <SectionPanel title="Durasi Balik Modal (BEP) — via Kupon + Pull-to-Par" index={4}>
+        <SectionPanel title="Durasi Balik Modal (BEP) — via Kupon + Pull-to-Par" index={5}>
           <VerdictBanner tone={FASTER_TONE[data.bep.faster]}>{FASTER_LABEL[data.bep.faster]}</VerdictBanner>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <BepCard title={`Jika Switching ke ${newBond.name}`} projection={data.bep.switchScenario} highlight={data.bep.faster === "switch"} />
@@ -342,11 +362,25 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
             Proyeksi mengasumsikan harga tetap seperti hari ini (tidak memprediksi pergerakan harga ke depan), dihitung
             dari akumulasi kupon berjalan ditambah keuntungan pull-to-par saat jatuh tempo (redemption di 100).
           </p>
+          <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
+            <p>
+              Shortfall = Modal Awal − Nilai Terealisasi Hari Ini ={" "}
+              {formatCurrency(Math.max(0, data.originalCapital - data.totalValueRealizedToday), oldBond.currency)}
+            </p>
+            <p>
+              Total potensi s/d jatuh tempo jika switching (akumulasi kupon + pull-to-par):{" "}
+              {formatCurrency(data.bep.switchScenario.cumulativeAtMaturity, newBond.currency)}
+            </p>
+            <p>
+              Total potensi s/d jatuh tempo jika tetap hold (akumulasi kupon + pull-to-par):{" "}
+              {formatCurrency(data.bep.stayScenario.cumulativeAtMaturity, oldBond.currency)}
+            </p>
+          </div>
         </SectionPanel>
       </div>
 
       <div>
-        <SectionPanel title="Perbandingan Kupon Tahunan" index={5}>
+        <SectionPanel title="Perbandingan Kupon Tahunan" index={6}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat
               label={`Kupon/Tahun ${oldBond.name} (Tetap Hold)`}
@@ -379,21 +413,33 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
                   : "Pendapatan kupon tahunan kedua opsi sama besar."
               : "Bandingkan kedua angka kupon tahunan di atas sesuai kebutuhan mata uang Anda."}
           </p>
+          <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
+            <p>
+              {oldBond.name}: Nominal {formatCurrency(data.oldNominal, oldBond.currency)} × Kupon{" "}
+              {formatPercent(oldBond.couponRate, 3)} = {formatCurrency(data.couponComparison.oldAnnualCoupon, oldBond.currency)}
+            </p>
+            <p>
+              {newBond.name}: Nominal {formatCurrency(data.newNominal, newBond.currency)} × Kupon{" "}
+              {formatPercent(newBond.couponRate, 3)} = {formatCurrency(data.couponComparison.newAnnualCoupon, newBond.currency)}
+            </p>
+          </div>
         </SectionPanel>
       </div>
 
       <div>
-        <SectionPanel title="Perbandingan Duration" index={6}>
+        <SectionPanel title="Perbandingan Duration" index={7}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat
               label={`Duration ${oldBond.name} (Tetap Hold)`}
               value={`${formatNumber(data.durationComparison.oldDuration, 2)} tahun`}
               tone={data.durationComparison.shorter === "stay" ? "accent" : "neutral"}
+              sub={`YTM dipakai ${formatPercent(data.redemption.sell!.ytm, 2)}`}
             />
             <Stat
               label={`Duration ${newBond.name} (Switching)`}
               value={`${formatNumber(data.durationComparison.newDuration, 2)} tahun`}
               tone={data.durationComparison.shorter === "switch" ? "accent" : "neutral"}
+              sub={`YTM dipakai ${formatPercent(data.newBondSubscription.ytm, 2)}`}
             />
             <Stat
               label="Selisih Duration"
@@ -412,6 +458,113 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
         </SectionPanel>
       </div>
     </div>
+  );
+}
+
+type CriterionFavor = "switch" | "stay" | null;
+
+interface Criterion {
+  name: string;
+  detail: string;
+  favor: CriterionFavor;
+}
+
+const FAVOR_LABEL: Record<"switch" | "stay" | "neutral", string> = {
+  switch: "SWITCH",
+  stay: "HOLD",
+  neutral: "NETRAL",
+};
+
+const FAVOR_TONE: Record<"switch" | "stay" | "neutral", Tone> = {
+  switch: "positive",
+  stay: "warning",
+  neutral: "neutral",
+};
+
+/**
+ * Simple multi-criteria "DSS"-style scorecard: each criterion independently
+ * votes switch/hold/neutral from figures already computed elsewhere on this
+ * page, then the overall call is just a majority vote across non-neutral
+ * votes. This is a decision aid, not a single blended score — the criteria
+ * can (and often do) point different directions, and that disagreement is
+ * itself useful information for the user.
+ */
+function RecommendationPanel({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: BondDTO; data: SwitchingResult }) {
+  const oldYield = data.redemption.sell!.ytm;
+  const newYield = data.newBondSubscription.ytm;
+  const yieldDiff = newYield - oldYield;
+
+  const criteria: Criterion[] = [
+    {
+      name: "Yield (YTM)",
+      detail: `${newBond.name} ${formatPercent(newYield, 2)} vs ${oldBond.name} ${formatPercent(oldYield, 2)} (yield jual hari ini) — selisih ${yieldDiff >= 0 ? "+" : ""}${formatPercent(yieldDiff, 2)}`,
+      favor: Math.abs(yieldDiff) < 1e-6 ? null : yieldDiff > 0 ? "switch" : "stay",
+    },
+    {
+      name: "Untung Pricing (Nominal)",
+      detail: `Selisih nominal ${data.extraNominal >= 0 ? "+" : ""}${formatCurrency(data.extraNominal, newBond.currency)}`,
+      favor: data.extraNominal === 0 ? null : data.extraNominal > 0 ? "switch" : "stay",
+    },
+    {
+      name: "Kupon Tahunan",
+      detail: data.couponComparison.sameCurrency
+        ? `Selisih ${data.couponComparison.difference! >= 0 ? "+" : ""}${formatCurrency(data.couponComparison.difference!, newBond.currency)}`
+        : "Mata uang berbeda — tidak dibandingkan langsung",
+      favor:
+        !data.couponComparison.sameCurrency || (data.couponComparison.difference ?? 0) === 0
+          ? null
+          : data.couponComparison.difference! > 0
+            ? "switch"
+            : "stay",
+    },
+    {
+      name: "Kecepatan Balik Modal (BEP)",
+      detail: FASTER_LABEL[data.bep.faster],
+      favor:
+        data.bep.faster === "switch" || data.bep.faster === "already-broke-even"
+          ? "switch"
+          : data.bep.faster === "stay"
+            ? "stay"
+            : null,
+    },
+    {
+      name: "Risiko Suku Bunga (Duration)",
+      detail: `${formatNumber(data.durationComparison.newDuration, 2)} tahun vs ${formatNumber(data.durationComparison.oldDuration, 2)} tahun — lebih pendek = lebih rendah risiko`,
+      favor: data.durationComparison.shorter === "equal" ? null : data.durationComparison.shorter,
+    },
+  ];
+
+  const switchCount = criteria.filter((c) => c.favor === "switch").length;
+  const stayCount = criteria.filter((c) => c.favor === "stay").length;
+  const overall: "switch" | "stay" | "tie" = switchCount > stayCount ? "switch" : stayCount > switchCount ? "stay" : "tie";
+  const overallTone: Tone = overall === "switch" ? "positive" : overall === "stay" ? "warning" : "neutral";
+  const overallLabel =
+    overall === "switch"
+      ? `Switch direkomendasikan — ${switchCount} dari ${criteria.length} kriteria mendukung pindah ke ${newBond.name}.`
+      : overall === "stay"
+        ? `Tetap hold direkomendasikan — ${stayCount} dari ${criteria.length} kriteria mendukung bertahan di ${oldBond.name}.`
+        : `Seimbang — ${switchCount} kriteria mendukung switch, ${stayCount} mendukung hold. Pertimbangkan prioritas Anda (yield vs risiko vs likuiditas).`;
+
+  return (
+    <SectionPanel title="Rekomendasi Switching (Multi-Kriteria)" index={1}>
+      <VerdictBanner tone={overallTone}>{overallLabel}</VerdictBanner>
+      <div className="mt-3 divide-y divide-border border border-border">
+        {criteria.map((c) => (
+          <div key={c.name} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <div>
+              <p className="text-xs font-semibold text-ink">{c.name}</p>
+              <p className="num mt-0.5 text-[11px] text-ink-muted">{c.detail}</p>
+            </div>
+            <Pill tone={FAVOR_TONE[c.favor ?? "neutral"]}>{FAVOR_LABEL[c.favor ?? "neutral"]}</Pill>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-ink-faint">
+        Skor ini adalah alat bantu keputusan (voting per kriteria), bukan angka tunggal — kriteria bisa saling
+        bertentangan (mis. yield lebih tinggi tapi duration lebih panjang), dan itu sengaja ditampilkan apa adanya
+        supaya Anda yang menimbang prioritasnya.
+      </p>
+    </SectionPanel>
   );
 }
 

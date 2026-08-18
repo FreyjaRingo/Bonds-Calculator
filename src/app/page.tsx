@@ -22,10 +22,16 @@ const tools = [
     description: "Upload tabel indikasi harga, cek untung/rugi pindah obligasi: pricing, kupon, dan duration.",
   },
   {
-    href: "/bonds",
+    href: "/price-indication",
     label: "04",
+    title: "Indikasi Harga",
+    description: "Upload PDF Bond Price Indication, lihat seluruh tabel harga MBI Beli/Jual per seri obligasi.",
+  },
+  {
+    href: "/bonds",
+    label: "05",
     title: "Database Obligasi",
-    description: "Cari, tambah, dan kelola data referensi obligasi yang dipakai ketiga kalkulator di atas.",
+    description: "Cari, tambah, dan kelola data referensi obligasi yang dipakai kalkulator di atas.",
   },
 ];
 

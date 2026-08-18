@@ -58,6 +58,9 @@ export interface SwitchingResult {
   oldNominal: number;
   newNominal: number;
   extraNominal: number;
+  /** Clean price/100 + accrued-per-unit of the new bond -- the per-unit cost used to size newNominal. */
+  costPerUnitNew: number;
+  accruedPerUnitNew: number;
   newBondSubscription: SubscriptionResult;
   bep: {
     shortfall: number;
@@ -235,6 +238,8 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
       oldNominal,
       newNominal,
       extraNominal,
+      costPerUnitNew,
+      accruedPerUnitNew,
       newBondSubscription: newBondSubscription.data,
       bep: { shortfall, switchScenario, stayScenario, faster },
       couponComparison,
