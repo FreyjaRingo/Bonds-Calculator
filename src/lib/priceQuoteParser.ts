@@ -33,6 +33,28 @@ function toNumber(token: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+const MONTH_INDEX: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/** Parses the row-level "15-Jul-35" maturity token. Two-digit years are all in the future for this sheet. */
+export function parseMaturityText(maturityText: string): Date | null {
+  const m = maturityText.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/);
+  if (!m) return null;
+  const month = MONTH_INDEX[m[2].toLowerCase()];
+  if (month == null) return null;
+  const year = m[3].length <= 2 ? 2000 + Number(m[3]) : Number(m[3]);
+  return new Date(Date.UTC(year, month, Number(m[1])));
+}
+
+/** Parses the sheet-level "8/12/2026" (M/D/YYYY) as-of date. */
+export function parseAsOfDate(asOfDate: string | null): Date | null {
+  if (!asOfDate) return null;
+  const m = asOfDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return new Date(Date.UTC(Number(m[3]), Number(m[1]) - 1, Number(m[2])));
+}
+
 export function isMaybankPriceIndicationText(text: string): boolean {
   const sample = text.slice(0, 4000).toLowerCase();
   const hasPriceHeader = sample.includes("bond price indication");

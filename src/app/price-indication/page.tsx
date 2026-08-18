@@ -2,8 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { PriceQuoteRow } from "@/lib/priceQuoteParser";
+import { parseAsOfDate, parseMaturityText } from "@/lib/priceQuoteParser";
 import { formatNumber } from "@/lib/format";
 import { Panel, PrimaryButton, Pill, EmptyState, TextInput, Select, Table, Thead } from "@/components/ui";
+import { YieldCurveChart, type YieldCurvePoint } from "@/components/YieldCurveChart";
+
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 interface PriceSheet {
   asOfDate: string | null;
@@ -76,6 +80,29 @@ export default function PriceIndicationPage() {
 
   const benchmarkCount = priceSheet?.rows.filter((r) => r.isBenchmark).length ?? 0;
 
+  const curves = useMemo(() => {
+    if (!priceSheet) return [];
+    const asOf = parseAsOfDate(priceSheet.asOfDate) ?? new Date();
+    return sections
+      .map((section) => {
+        const points: YieldCurvePoint[] = priceSheet.rows
+          .filter((r) => r.section === section)
+          .map((r) => {
+            const maturity = parseMaturityText(r.maturityText);
+            if (!maturity) return null;
+            const years = (maturity.getTime() - asOf.getTime()) / MS_PER_YEAR;
+            if (years <= 0) return null;
+            const beli = r.mbiBeli != null && r.yieldMbiBeli != null ? r.yieldMbiBeli : null;
+            const jual = r.mbiJual && r.yieldMbiJual != null ? r.yieldMbiJual : null;
+            if (beli == null && jual == null) return null;
+            return { code: r.productCode, years, beli, jual };
+          })
+          .filter((p): p is YieldCurvePoint => p !== null);
+        return { section, points };
+      })
+      .filter((c) => c.points.length >= 2);
+  }, [priceSheet, sections]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -119,6 +146,25 @@ export default function PriceIndicationPage() {
       </Panel>
 
       {!priceSheet && <EmptyState message="Upload PDF indikasi harga untuk menampilkan tabel." />}
+
+      {priceSheet && curves.length > 0 && (
+        <div>
+          <div className="bg-accent px-3 py-1.5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wide text-accent-ink">Kurva Yield per Section</h2>
+          </div>
+          <Panel className="grid gap-x-4 gap-y-2 p-2 sm:grid-cols-2">
+            {curves.map((c) => (
+              <div key={c.section} className="border border-border">
+                <YieldCurveChart title={c.section} points={c.points} />
+              </div>
+            ))}
+          </Panel>
+          <p className="mt-2 text-[11px] text-ink-faint">
+            Ditampilkan hanya section dengan &ge;2 seri bertenor valid. Sumbu-X = sisa tenor (tahun) dari tanggal
+            &quot;as of&quot; PDF; sumbu-Y = yield MBI Beli/Jual.
+          </p>
+        </div>
+      )}
 
       {priceSheet && (
         <>
