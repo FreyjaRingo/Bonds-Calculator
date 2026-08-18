@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import "./globals.css";
 
@@ -37,9 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col bg-bg text-ink">
         <header className="border-b border-accent-strong/30 bg-accent">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6">
-            <Link href="/" className="flex items-center gap-2.5">
-              {/* TODO: swap for the real Maybank logo once provided (public/maybank-logo.svg) */}
-              <span className="grid h-7 w-7 place-items-center bg-accent-ink text-xs font-bold text-accent">M</span>
+            <Link href="/" className="flex items-center gap-3">
+              <Image src="/Maybank-logo.png" alt="Maybank" width={480} height={270} priority className="h-6 w-auto" />
+              <span className="h-4 w-px bg-accent-ink/25" />
               <span className="text-sm font-semibold tracking-wide text-accent-ink">BONDS CALCULATOR</span>
             </Link>
             <nav className="flex gap-0.5 text-[13px] font-medium">
