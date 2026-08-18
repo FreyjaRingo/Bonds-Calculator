@@ -9,7 +9,7 @@ import { workday, holidaySet, type Holiday } from "@/lib/finance";
 import { matchBondByCode } from "@/lib/bondCodeMatch";
 import type { PriceQuoteRow } from "@/lib/priceQuoteParser";
 import { formatCurrency, formatDate, formatNumber, formatPercent, toDateInputValue } from "@/lib/format";
-import { Field, TextInput, PrimaryButton, SecondaryButton, Panel, SectionPanel, Stat, VerdictBanner, EmptyState, ErrorState, type Tone } from "@/components/ui";
+import { Field, TextInput, PrimaryButton, SecondaryButton, Panel, SectionPanel, Stat, Pill, VerdictBanner, EmptyState, ErrorState, type Tone } from "@/components/ui";
 
 export default function SwitchingPage() {
   const [priceSheet, setPriceSheet] = useState<{ asOfDate: string | null; rows: PriceQuoteRow[] } | null>(null);
@@ -202,6 +202,7 @@ export default function SwitchingPage() {
           <Field label="Harga Beli Awal (per 100)">
             <TextInput type="number" min={0} step="0.001" value={originalBuyPrice} onChange={(e) => setOriginalBuyPrice(e.target.value)} />
           </Field>
+          {oldBond && <BondSummaryBox bond={oldBond} />}
 
           <div className="border-t border-border pt-4">
             <Field label="Tanggal Transaksi Switching (hari ini)">
@@ -248,15 +249,7 @@ export default function SwitchingPage() {
             Nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued
             interest) dibagi harga beli obligasi baru — bukan nominal yang sama.
           </p>
-          {newBond && (
-            <div className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
-              <p>
-                {newBond.currency} · kupon <span className="num">{formatPercent(newBond.couponRate, 3)}</span> ·{" "}
-                {newBond.couponFrequency}
-              </p>
-              <p className="mt-1">Jatuh tempo {formatDate(newBond.maturityDate)}</p>
-            </div>
-          )}
+          {newBond && <BondSummaryBox bond={newBond} />}
         </Panel>
       </div>
 
@@ -293,6 +286,8 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
 
   return (
     <div className="space-y-6">
+      <ProductTransitionCard oldBond={oldBond} newBond={newBond} />
+
       <div>
         <SectionPanel title="Sudah Selesai — Posisi Hari Ini" index={1}>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -441,6 +436,65 @@ function BepCard({
             <span className="ml-1 text-sm font-normal text-ink-muted">({formatDate(projection.reachedDate)})</span>
           )}
         </p>
+      )}
+    </div>
+  );
+}
+
+function BondSummaryBox({ bond }: { bond: BondDTO }) {
+  return (
+    <div className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
+      <p className="flex flex-wrap items-center gap-1.5 font-medium text-ink">
+        {bond.name}
+        {bond.hasLockUp && <Pill tone="warning">LOCK-UP</Pill>}
+      </p>
+      <p className="mt-1">
+        {bond.currency} · kupon <span className="num">{formatPercent(bond.couponRate, 3)}</span> · {bond.couponFrequency}
+      </p>
+      <p className="mt-0.5">
+        Terbit {formatDate(bond.issueDate)} · Jatuh tempo {formatDate(bond.maturityDate)}
+      </p>
+      {(bond.spRating || bond.moodysRating) && (
+        <p className="mt-0.5">
+          Rating: {[bond.spRating, bond.moodysRating].filter(Boolean).join(" / ")}
+          {bond.isinCode ? ` · ${bond.isinCode}` : ""}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Prominent "old product → new product" transition summary at the top of the result. */
+function ProductTransitionCard({ oldBond, newBond }: { oldBond: BondDTO; newBond: BondDTO }) {
+  return (
+    <Panel className="p-4">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Detail Produk Switching</p>
+      <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+        <ProductDetail label="Dari" bond={oldBond} />
+        <span className="num hidden text-lg text-accent-strong sm:block">&rarr;</span>
+        <span className="num text-lg text-accent-strong sm:hidden">&darr;</span>
+        <ProductDetail label="Ke" bond={newBond} align="right" />
+      </div>
+    </Panel>
+  );
+}
+
+function ProductDetail({ label, bond, align = "left" }: { label: string; bond: BondDTO; align?: "left" | "right" }) {
+  return (
+    <div className={align === "right" ? "text-right" : "text-left"}>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">{label}</p>
+      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-base font-semibold text-ink" style={{ justifyContent: align === "right" ? "flex-end" : "flex-start" }}>
+        {bond.name}
+        {bond.hasLockUp && <Pill tone="warning">LOCK-UP</Pill>}
+      </p>
+      <p className="num mt-1 text-xs text-ink-muted">
+        {bond.currency} · {formatPercent(bond.couponRate, 3)} · {bond.couponFrequency}
+      </p>
+      <p className="text-xs text-ink-muted">
+        Terbit {formatDate(bond.issueDate)} &middot; JT {formatDate(bond.maturityDate)}
+      </p>
+      {(bond.spRating || bond.moodysRating) && (
+        <p className="text-xs text-ink-muted">Rating {[bond.spRating, bond.moodysRating].filter(Boolean).join(" / ")}</p>
       )}
     </div>
   );
