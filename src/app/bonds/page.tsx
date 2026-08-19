@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { BondDTO } from "@/lib/types";
 import { BondForm } from "@/components/BondForm";
 import { formatDate, formatPercent } from "@/lib/format";
 import { TextInput, PrimaryButton, SecondaryButton, Panel, Pill, Table, Thead } from "@/components/ui";
 
 export default function BondsPage() {
+  const router = useRouter();
   const [bonds, setBonds] = useState<BondDTO[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,17 @@ export default function BondsPage() {
           <h1 className="text-xl font-semibold text-ink">Database Obligasi</h1>
           <p className="mt-1 text-sm text-ink-muted">Data referensi obligasi yang dipakai ketiga kalkulator.</p>
         </div>
-        <PrimaryButton onClick={openCreate}>+ Tambah Obligasi</PrimaryButton>
+        <div className="flex items-center gap-2">
+          <PrimaryButton onClick={openCreate}>+ Tambah Obligasi</PrimaryButton>
+          <SecondaryButton
+            onClick={async () => {
+              await fetch("/api/db-auth", { method: "DELETE" });
+              router.push("/");
+            }}
+          >
+            Keluar
+          </SecondaryButton>
+        </div>
       </div>
 
       <TextInput
