@@ -48,6 +48,7 @@ export default function SwitchingPage() {
 
   const [newBond, setNewBond] = useState<BondDTO | null>(null);
   const [newBondBuyPriceToday, setNewBondBuyPriceToday] = useState("");
+  const [desiredNominal, setDesiredNominal] = useState("");
 
   const [holidays, setHolidays] = useState<Holiday[]>([]);
 
@@ -133,6 +134,7 @@ export default function SwitchingPage() {
         oldBondSellPriceToday: sellPriceNum,
         newBond: bondDtoToInput(newBond),
         newBondBuyPriceToday: buyPriceNum,
+        newBondDesiredNominal: Number(desiredNominal) > 0 ? Number(desiredNominal) : undefined,
       },
       holidays
     );
@@ -147,6 +149,7 @@ export default function SwitchingPage() {
     oldBondSellSettlementDate,
     oldBondSellPriceToday,
     newBondBuyPriceToday,
+    desiredNominal,
     holidays,
   ]);
 
@@ -348,9 +351,19 @@ export default function SwitchingPage() {
             <Field label="Harga Beli Hari Ini (MBI Jual, per 100)">
               <TextInput type="number" min={0} step="0.001" value={newBondBuyPriceToday} onChange={(e) => setNewBondBuyPriceToday(e.target.value)} />
             </Field>
+            <Field label="Face Value yang Diinginkan (Opsional)">
+              <TextInput
+                type="number"
+                min={0}
+                placeholder="Kosongkan untuk auto-size dari dana hasil jual"
+                value={desiredNominal}
+                onChange={(e) => setDesiredNominal(e.target.value)}
+              />
+            </Field>
             <p className="border border-border bg-surface-2 px-3 py-2.5 text-xs text-ink-muted">
-              Nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued
-              interest) dibagi harga beli obligasi baru — bukan nominal yang sama.
+              {desiredNominal
+                ? `Nominal dikunci ke Face Value yang Anda tentukan — bagian Pricing di bawah menghitung apakah dana hasil jual cukup, atau perlu top up.`
+                : `Kosong = nominal obligasi baru dihitung otomatis dari dana hasil penjualan obligasi lama (principal + accrued interest) dibagi harga beli obligasi baru. Isi untuk menentukan face value sendiri dan cek kebutuhan top up.`}
             </p>
             {newBond && <BondSummaryBox bond={newBond} />}
           </Panel>
@@ -558,6 +571,10 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
   const pricingSelisih = data.newNominal - data.proceeds;
   const pricingFavorable = pricingSelisih > 0;
   const newBuyPriceUsed = (data.newBondSubscription.principal / data.newNominal) * 100;
+  // When a desired face value is set, the meaningful same-currency comparison
+  // is cash-vs-cash (proceeds vs. cost of that face value), not face-value-vs-cash.
+  const netCash = data.proceeds - data.costForNewNominal;
+  const needsTopUp = data.usedDesiredNominal && netCash < 0;
 
   return (
     <div className="space-y-6">
@@ -579,28 +596,62 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
         <SectionPanel title="Untung/Rugi Secara Pricing (Switching)" index={3}>
           <div className="grid gap-3 sm:grid-cols-3">
             <Stat label={`Dana Hasil Jual ${oldBond.name}`} value={formatCurrency(data.proceeds, oldBond.currency)} />
-            <Stat label={`Nominal ${newBond.name} (Baru)`} value={formatCurrency(data.newNominal, newBond.currency)} />
             <Stat
-              label="Selisih Nominal"
-              value={`${pricingFavorable ? "+" : ""}${formatCurrency(pricingSelisih, newBond.currency)}`}
-              tone={pricingFavorable ? "positive" : "negative"}
+              label={data.usedDesiredNominal ? `Face Value ${newBond.name} (Ditentukan)` : `Nominal ${newBond.name} (Baru)`}
+              value={formatCurrency(data.newNominal, newBond.currency)}
             />
+            {data.usedDesiredNominal ? (
+              <Stat
+                label={needsTopUp ? "Perlu Top Up" : "Sisa Dana (Tidak Perlu Top Up)"}
+                value={formatCurrency(Math.abs(netCash), newBond.currency)}
+                tone={needsTopUp ? "negative" : "positive"}
+              />
+            ) : (
+              <Stat
+                label="Selisih Nominal"
+                value={`${pricingFavorable ? "+" : ""}${formatCurrency(pricingSelisih, newBond.currency)}`}
+                tone={pricingFavorable ? "positive" : "negative"}
+              />
+            )}
           </div>
           <p className="mt-3 text-xs text-ink-muted">
-            {pricingFavorable
-              ? `Secara harga, switching menguntungkan — dana hasil jual (${formatCurrency(data.proceeds, oldBond.currency)}) bisa membeli nominal ${newBond.name} lebih besar dari dana yang dipakai.`
-              : `Secara harga, switching merugikan — dana hasil jual (${formatCurrency(data.proceeds, oldBond.currency)}) hanya cukup membeli nominal ${newBond.name} lebih kecil dari dana yang dipakai.`}
+            {data.usedDesiredNominal ? (
+              needsTopUp ? (
+                `Anda menentukan face value sendiri untuk ${newBond.name} — dana hasil jual ${oldBond.name} tidak cukup, perlu top up ${formatCurrency(Math.abs(netCash), newBond.currency)} dari luar untuk bisa membeli face value tersebut hari ini.`
+              ) : (
+                `Anda menentukan face value sendiri untuk ${newBond.name} — dana hasil jual ${oldBond.name} sudah cukup, tidak perlu top up. Sisa dana ${formatCurrency(netCash, newBond.currency)} setelah pembelian.`
+              )
+            ) : pricingFavorable ? (
+              `Secara harga, switching menguntungkan — dana hasil jual (${formatCurrency(data.proceeds, oldBond.currency)}) bisa membeli nominal ${newBond.name} lebih besar dari dana yang dipakai.`
+            ) : (
+              `Secara harga, switching merugikan — dana hasil jual (${formatCurrency(data.proceeds, oldBond.currency)}) hanya cukup membeli nominal ${newBond.name} lebih kecil dari dana yang dipakai.`
+            )}
           </p>
           <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
-            <p>Detail perhitungan nominal baru:</p>
+            <p>Cost/unit {newBond.name}:</p>
             <p>
               Cost/unit {newBond.name} = (Harga {formatNumber(newBuyPriceUsed, 3)} ÷ 100) + Accrued/unit{" "}
               {formatNumber(data.accruedPerUnitNew, 6)} = {formatNumber(data.costPerUnitNew, 6)}
             </p>
-            <p>
-              Nominal Baru = Dana Hasil Jual ÷ Cost/unit = {formatCurrency(data.proceeds, oldBond.currency)} ÷{" "}
-              {formatNumber(data.costPerUnitNew, 6)} = {formatCurrency(data.newNominal, newBond.currency)}
-            </p>
+            {data.usedDesiredNominal ? (
+              <>
+                <p>
+                  Biaya Face Value = Face Value × Cost/unit = {formatCurrency(data.newNominal, newBond.currency)} ×{" "}
+                  {formatNumber(data.costPerUnitNew, 6)} = {formatCurrency(data.costForNewNominal, newBond.currency)}
+                </p>
+                <p>
+                  {needsTopUp ? "Top Up" : "Sisa Dana"} = Dana Hasil Jual − Biaya Face Value ={" "}
+                  {formatCurrency(data.proceeds, oldBond.currency)} − {formatCurrency(data.costForNewNominal, newBond.currency)} ={" "}
+                  {netCash >= 0 ? "+" : ""}
+                  {formatCurrency(netCash, newBond.currency)}
+                </p>
+              </>
+            ) : (
+              <p>
+                Nominal Baru = Dana Hasil Jual ÷ Cost/unit = {formatCurrency(data.proceeds, oldBond.currency)} ÷{" "}
+                {formatNumber(data.costPerUnitNew, 6)} = {formatCurrency(data.newNominal, newBond.currency)}
+              </p>
+            )}
           </div>
         </SectionPanel>
       </div>

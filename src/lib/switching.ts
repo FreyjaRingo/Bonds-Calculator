@@ -40,6 +40,14 @@ export interface SwitchingInput {
   oldBondSellPriceToday: number;
   newBond: BondInput;
   newBondBuyPriceToday: number;
+  /**
+   * Optional: a face value the user wants to hold in the new bond, instead of
+   * auto-sizing to exactly what the sale proceeds cover. When set, the rest
+   * of the calculation (coupon income, BEP, duration) is based on this
+   * nominal -- it's what the user will actually end up holding -- and
+   * `topUpNeeded`/`surplus` report whether the proceeds alone are enough.
+   */
+  newBondDesiredNominal?: number;
 }
 
 export interface BepProjection {
@@ -61,6 +69,14 @@ export interface SwitchingResult {
   /** Clean price/100 + accrued-per-unit of the new bond -- the per-unit cost used to size newNominal. */
   costPerUnitNew: number;
   accruedPerUnitNew: number;
+  /** True when `newNominal` came from `newBondDesiredNominal` rather than being auto-sized from `proceeds`. */
+  usedDesiredNominal: boolean;
+  /** newNominal * costPerUnitNew -- what buying `newNominal` actually costs at today's price. */
+  costForNewNominal: number;
+  /** Extra cash needed beyond `proceeds` to afford `newNominal` (0 when proceeds already cover it, e.g. always 0 when auto-sized). */
+  topUpNeeded: number;
+  /** Leftover cash after buying `newNominal`, if proceeds exceed the cost (0 when auto-sized, since that spends exactly `proceeds`). */
+  surplus: number;
   newBondSubscription: SubscriptionResult;
   bep: {
     shortfall: number;
@@ -151,7 +167,11 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
   if (costPerUnitNew <= 0) {
     return { ok: false, error: "Harga beli obligasi baru tidak valid." };
   }
-  const newNominal = proceeds / costPerUnitNew;
+  const usedDesiredNominal = input.newBondDesiredNominal != null && input.newBondDesiredNominal > 0;
+  const newNominal = usedDesiredNominal ? input.newBondDesiredNominal! : proceeds / costPerUnitNew;
+  const costForNewNominal = newNominal * costPerUnitNew;
+  const topUpNeeded = Math.max(0, costForNewNominal - proceeds);
+  const surplus = Math.max(0, proceeds - costForNewNominal);
 
   const newBondSubscription = calcSubscription(
     input.newBond,
@@ -240,6 +260,10 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
       extraNominal,
       costPerUnitNew,
       accruedPerUnitNew,
+      usedDesiredNominal,
+      costForNewNominal,
+      topUpNeeded,
+      surplus,
       newBondSubscription: newBondSubscription.data,
       bep: { shortfall, switchScenario, stayScenario, faster },
       couponComparison,
