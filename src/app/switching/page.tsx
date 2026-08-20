@@ -45,6 +45,7 @@ export default function SwitchingPage() {
   const [todayTradeDate, setTodayTradeDate] = useState(toDateInputValue(new Date()));
   const [oldBondSellSettlementDate, setOldBondSellSettlementDate] = useState("");
   const [oldBondSellPriceToday, setOldBondSellPriceToday] = useState("");
+  const [oldBondRebuyPriceToday, setOldBondRebuyPriceToday] = useState("");
 
   const [newBond, setNewBond] = useState<BondDTO | null>(null);
   const [newBondBuyPriceToday, setNewBondBuyPriceToday] = useState("");
@@ -75,6 +76,7 @@ export default function SwitchingPage() {
     setSyncedOldAutoFillKey(oldAutoFillKey);
     const match = priceSheet!.rows.find((r) => matchBondByCode(r.productCode, [oldBond!])?.id === oldBond!.id);
     if (match?.mbiBeli != null) setOldBondSellPriceToday(String(match.mbiBeli));
+    if (match?.mbiJual != null) setOldBondRebuyPriceToday(String(match.mbiJual));
   }
 
   const newAutoFillKey = newBond && priceSheet ? `${newBond.id}::${priceSheet.rows.length}` : null;
@@ -133,6 +135,7 @@ export default function SwitchingPage() {
         oldBondSellPriceToday: sellPriceNum,
         newBond: bondDtoToInput(newBond),
         newBondBuyPriceToday: buyPriceNum,
+        oldBondRebuyPriceToday: Number(oldBondRebuyPriceToday) > 0 ? Number(oldBondRebuyPriceToday) : undefined,
       },
       holidays
     );
@@ -146,6 +149,7 @@ export default function SwitchingPage() {
     todayTradeDate,
     oldBondSellSettlementDate,
     oldBondSellPriceToday,
+    oldBondRebuyPriceToday,
     newBondBuyPriceToday,
     holidays,
   ]);
@@ -188,13 +192,25 @@ export default function SwitchingPage() {
           oldBondSellPriceToday: commonInputsReady.sellPriceNum,
           newBond: bondDtoToInput(cand),
           newBondBuyPriceToday: priceRow.mbiJual,
+          oldBondRebuyPriceToday: Number(oldBondRebuyPriceToday) > 0 ? Number(oldBondRebuyPriceToday) : undefined,
         },
         holidays
       );
       if (res.ok) out.push({ bond: cand, buyPriceToday: priceRow.mbiJual, data: res.data });
     }
     return out;
-  }, [oldBond, priceSheet, commonInputsReady, allBonds, originalBuyTradeDate, originalBuySettlementDate, todayTradeDate, oldBondSellSettlementDate, holidays]);
+  }, [
+    oldBond,
+    priceSheet,
+    commonInputsReady,
+    allBonds,
+    originalBuyTradeDate,
+    originalBuySettlementDate,
+    todayTradeDate,
+    oldBondSellSettlementDate,
+    oldBondRebuyPriceToday,
+    holidays,
+  ]);
 
   function pickCandidate(cand: CandidateEval) {
     setNewBond(cand.bond);
@@ -326,6 +342,15 @@ export default function SwitchingPage() {
                 <TextInput type="number" min={0} step="0.001" value={oldBondSellPriceToday} onChange={(e) => setOldBondSellPriceToday(e.target.value)} />
               </Field>
             </div>
+            <div className="mt-3">
+              <Field label="Harga Beli Kembali Hari Ini (MBI Jual, per 100)">
+                <TextInput type="number" min={0} step="0.001" value={oldBondRebuyPriceToday} onChange={(e) => setOldBondRebuyPriceToday(e.target.value)} />
+              </Field>
+              <p className="mt-1 text-[11px] text-ink-faint">
+                Basis pembanding &quot;apple-to-apple&quot; di bagian Pricing — berapa nominal {oldBond?.name ?? "obligasi ini"} yang
+                bisa dibeli kembali hari ini dengan dana hasil jual, dibanding nominal obligasi tujuan.
+              </p>
+            </div>
           </div>
         </Panel>
 
@@ -400,7 +425,7 @@ function sortCandidates(list: CandidateEval[], key: RecTabKey): CandidateEval[] 
     case "duration":
       return arr.sort((a, b) => a.data.durationComparison.newDuration - b.data.durationComparison.newDuration);
     case "pricing":
-      return arr.sort((a, b) => b.data.extraNominal - a.data.extraNominal);
+      return arr.sort((a, b) => (b.data.extraNominalVsRebuy ?? b.data.extraNominal) - (a.data.extraNominalVsRebuy ?? a.data.extraNominal));
   }
 }
 
@@ -501,9 +526,13 @@ function RecommendationTabs({
                 <td className={`num px-2.5 py-1.5 text-right ${tab === "duration" ? "font-semibold text-accent-strong" : "text-ink"}`}>
                   {formatNumber(c.data.durationComparison.newDuration, 2)} th
                 </td>
-                <td className={`num px-2.5 py-1.5 text-right ${tab === "pricing" ? "font-semibold text-accent-strong" : c.data.extraNominal >= 0 ? "text-positive" : "text-negative"}`}>
-                  {c.data.extraNominal >= 0 ? "+" : ""}
-                  {formatCurrency(c.data.extraNominal, c.bond.currency)}
+                <td
+                  className={`num px-2.5 py-1.5 text-right ${
+                    tab === "pricing" ? "font-semibold text-accent-strong" : (c.data.extraNominalVsRebuy ?? c.data.extraNominal) >= 0 ? "text-positive" : "text-negative"
+                  }`}
+                >
+                  {(c.data.extraNominalVsRebuy ?? c.data.extraNominal) >= 0 ? "+" : ""}
+                  {formatCurrency(c.data.extraNominalVsRebuy ?? c.data.extraNominal, c.bond.currency)}
                 </td>
                 <td className="px-2.5 py-1.5 text-right">
                   <SecondaryButton type="button" onClick={() => onPick(c)} className="px-2 py-1 text-xs">
@@ -536,8 +565,13 @@ const FASTER_TONE: Record<SwitchingResult["bep"]["faster"], Tone> = {
 };
 
 function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: BondDTO; data: SwitchingResult }) {
-  const pricingFavorable = data.extraNominal > 0;
+  const hasRebuyBasis = data.oldNominalRebuyEquivalent != null && data.extraNominalVsRebuy != null;
+  const pricingBaselineNominal = data.oldNominalRebuyEquivalent ?? data.oldNominal;
+  const pricingSelisih = data.extraNominalVsRebuy ?? data.extraNominal;
+  const pricingFavorable = pricingSelisih > 0;
   const newBuyPriceUsed = (data.newBondSubscription.principal / data.newNominal) * 100;
+  const oldBuyPriceUsed =
+    data.costPerUnitOldToday != null && data.accruedPerUnitOldToday != null ? (data.costPerUnitOldToday - data.accruedPerUnitOldToday) * 100 : null;
 
   return (
     <div className="space-y-6">
@@ -558,21 +592,36 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
       <div>
         <SectionPanel title="Untung/Rugi Secara Pricing (Switching)" index={3}>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Stat label={`Nominal ${oldBond.name} (Lama)`} value={formatCurrency(data.oldNominal, oldBond.currency)} />
+            <Stat
+              label={hasRebuyBasis ? `Nominal ${oldBond.name} (Beli Kembali Hari Ini)` : `Nominal ${oldBond.name} (Lama)`}
+              value={formatCurrency(pricingBaselineNominal, oldBond.currency)}
+            />
             <Stat label={`Nominal ${newBond.name} (Baru)`} value={formatCurrency(data.newNominal, newBond.currency)} />
             <Stat
               label="Selisih Nominal"
-              value={`${pricingFavorable ? "+" : ""}${formatCurrency(data.extraNominal, newBond.currency)}`}
+              value={`${pricingFavorable ? "+" : ""}${formatCurrency(pricingSelisih, newBond.currency)}`}
               tone={pricingFavorable ? "positive" : "negative"}
             />
           </div>
           <p className="mt-3 text-xs text-ink-muted">
-            {pricingFavorable
-              ? `Secara harga, switching menguntungkan — dana hasil jual bisa membeli nominal ${newBond.name} lebih besar dari nominal ${oldBond.name} yang dijual.`
-              : `Secara harga, switching merugikan — dana hasil jual hanya cukup membeli nominal ${newBond.name} lebih kecil dari nominal ${oldBond.name} yang dijual.`}
+            {hasRebuyBasis ? (
+              <>
+                Dibandingkan &quot;apple-to-apple&quot;: dana hasil jual {oldBond.name} hari ini ({formatCurrency(data.proceeds, oldBond.currency)}
+                ) dikonversi ke nominal masing-masing obligasi pada harga hari ini —{" "}
+                {pricingFavorable
+                  ? `switching ke ${newBond.name} menguntungkan secara harga, dana yang sama membeli nominal ${newBond.name} lebih besar dibanding kalau dibelikan kembali ke ${oldBond.name}.`
+                  : `switching ke ${newBond.name} merugikan secara harga, dana yang sama hanya membeli nominal ${newBond.name} lebih kecil dibanding kalau dibelikan kembali ke ${oldBond.name}.`}
+              </>
+            ) : (
+              <>
+                Isi &quot;Harga Beli Kembali Hari Ini&quot; pada obligasi lama supaya perbandingan ini apple-to-apple (dikonversi
+                dari dana hasil jual yang sama) — saat ini masih dibandingkan terhadap nominal historis saat beli pertama, yang
+                bisa jadi dari harga yang jauh berbeda dari hari ini.
+              </>
+            )}
           </p>
           <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
-            <p>Detail perhitungan nominal baru:</p>
+            <p>Detail perhitungan nominal baru ({newBond.name}):</p>
             <p>
               Cost/unit {newBond.name} = (Harga {formatNumber(newBuyPriceUsed, 3)} ÷ 100) + Accrued/unit{" "}
               {formatNumber(data.accruedPerUnitNew, 6)} = {formatNumber(data.costPerUnitNew, 6)}
@@ -580,6 +629,23 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
             <p>
               Nominal Baru = Dana Hasil Jual ÷ Cost/unit = {formatCurrency(data.proceeds, oldBond.currency)} ÷{" "}
               {formatNumber(data.costPerUnitNew, 6)} = {formatCurrency(data.newNominal, newBond.currency)}
+            </p>
+            {hasRebuyBasis && oldBuyPriceUsed != null && (
+              <>
+                <p className="pt-1">Detail perhitungan nominal beli-kembali ({oldBond.name}):</p>
+                <p>
+                  Cost/unit {oldBond.name} = (Harga {formatNumber(oldBuyPriceUsed, 3)} ÷ 100) + Accrued/unit{" "}
+                  {formatNumber(data.accruedPerUnitOldToday!, 6)} = {formatNumber(data.costPerUnitOldToday!, 6)}
+                </p>
+                <p>
+                  Nominal Beli-Kembali = Dana Hasil Jual ÷ Cost/unit = {formatCurrency(data.proceeds, oldBond.currency)} ÷{" "}
+                  {formatNumber(data.costPerUnitOldToday!, 6)} = {formatCurrency(data.oldNominalRebuyEquivalent!, oldBond.currency)}
+                </p>
+              </>
+            )}
+            <p className="pt-1">
+              (Referensi: nominal {oldBond.name} saat beli pertama dulu = {formatCurrency(data.oldNominal, oldBond.currency)} —
+              dipakai di bagian Kupon &amp; Modal Awal, bukan di perbandingan pricing ini.)
             </p>
           </div>
         </SectionPanel>
@@ -747,6 +813,7 @@ function RecommendationPanel({ oldBond, newBond, data }: { oldBond: BondDTO; new
   const oldYield = data.redemption.sell!.ytm;
   const newYield = data.newBondSubscription.ytm;
   const yieldDiff = newYield - oldYield;
+  const pricingSelisih = data.extraNominalVsRebuy ?? data.extraNominal;
 
   const criteria: Criterion[] = [
     {
@@ -756,8 +823,8 @@ function RecommendationPanel({ oldBond, newBond, data }: { oldBond: BondDTO; new
     },
     {
       name: "Untung Pricing (Nominal)",
-      detail: `Selisih nominal ${data.extraNominal >= 0 ? "+" : ""}${formatCurrency(data.extraNominal, newBond.currency)}`,
-      favor: data.extraNominal === 0 ? null : data.extraNominal > 0 ? "switch" : "stay",
+      detail: `Selisih nominal ${pricingSelisih >= 0 ? "+" : ""}${formatCurrency(pricingSelisih, newBond.currency)}${data.extraNominalVsRebuy == null ? " (vs nominal historis — isi harga beli-kembali obligasi lama untuk basis apple-to-apple)" : ""}`,
+      favor: pricingSelisih === 0 ? null : pricingSelisih > 0 ? "switch" : "stay",
     },
     {
       name: "Kupon Tahunan",

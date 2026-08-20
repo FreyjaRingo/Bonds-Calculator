@@ -40,6 +40,15 @@ export interface SwitchingInput {
   oldBondSellPriceToday: number;
   newBond: BondInput;
   newBondBuyPriceToday: number;
+  /**
+   * Optional: today's buy-back (MBI Jual / ask) price for the OLD bond. Used
+   * only to compute `oldNominalRebuyEquivalent` -- a fair "apples to apples"
+   * pricing baseline. Without it, the pricing section falls back to comparing
+   * against the literal held nominal, which is a tautology when priced at the
+   * same sell price (nominal * price / price = nominal) and only meaningful
+   * once a genuinely different (buy-side) price is available.
+   */
+  oldBondRebuyPriceToday?: number;
 }
 
 export interface BepProjection {
@@ -61,6 +70,18 @@ export interface SwitchingResult {
   /** Clean price/100 + accrued-per-unit of the new bond -- the per-unit cost used to size newNominal. */
   costPerUnitNew: number;
   accruedPerUnitNew: number;
+  /**
+   * Fair "apples to apples" pricing baseline: how much OLD-bond nominal
+   * today's sale proceeds could buy back at today's OLD-bond buy-side price
+   * -- as opposed to `oldNominal`, which is the nominal bought historically,
+   * possibly at a very different price. Null when `oldBondRebuyPriceToday`
+   * wasn't supplied.
+   */
+  oldNominalRebuyEquivalent: number | null;
+  costPerUnitOldToday: number | null;
+  accruedPerUnitOldToday: number | null;
+  /** newNominal - oldNominalRebuyEquivalent -- the corrected version of `extraNominal` for the pricing section. */
+  extraNominalVsRebuy: number | null;
   newBondSubscription: SubscriptionResult;
   bep: {
     shortfall: number;
@@ -191,6 +212,19 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
   const stayParGain = (oldNominal * (100 - input.oldBondSellPriceToday)) / 100;
   const stayScenario = projectBep(oldSettle, shortfall, staySchedule, stayParGain);
 
+  let oldNominalRebuyEquivalent: number | null = null;
+  let costPerUnitOldToday: number | null = null;
+  let accruedPerUnitOldToday: number | null = null;
+  let extraNominalVsRebuy: number | null = null;
+  if (input.oldBondRebuyPriceToday != null && input.oldBondRebuyPriceToday > 0) {
+    accruedPerUnitOldToday = accruedInterest(input.oldBond, oldBoundsToday.prev, oldSettle, oldBoundsToday.next, 1);
+    costPerUnitOldToday = input.oldBondRebuyPriceToday / 100 + accruedPerUnitOldToday;
+    if (costPerUnitOldToday > 0) {
+      oldNominalRebuyEquivalent = proceeds / costPerUnitOldToday;
+      extraNominalVsRebuy = newNominal - oldNominalRebuyEquivalent;
+    }
+  }
+
   let faster: SwitchingResult["bep"]["faster"];
   if (shortfall <= 0) {
     faster = "already-broke-even";
@@ -240,6 +274,10 @@ export function calcSwitching(input: SwitchingInput, holidays: Holiday[]): CalcR
       extraNominal,
       costPerUnitNew,
       accruedPerUnitNew,
+      oldNominalRebuyEquivalent,
+      costPerUnitOldToday,
+      accruedPerUnitOldToday,
+      extraNominalVsRebuy,
       newBondSubscription: newBondSubscription.data,
       bep: { shortfall, switchScenario, stayScenario, faster },
       couponComparison,
