@@ -616,12 +616,23 @@ function ResultView({ oldBond, newBond, data }: { oldBond: BondDTO; newBond: Bon
               tone={data.profitVsCapitalToday >= 0 ? "positive" : "negative"}
             />
           </div>
-          <p className="num mt-3 border-t border-border pt-3 text-[11px] text-ink-faint">
-            Nilai Terealisasi − Modal Awal = {formatCurrency(data.totalValueRealizedToday, oldBond.currency)} −{" "}
-            {formatCurrency(data.originalCapital, oldBond.currency)} ={" "}
-            {data.profitVsCapitalToday >= 0 ? "+" : ""}
-            {formatCurrency(data.profitVsCapitalToday, oldBond.currency)}
+          <p className="mt-3 text-xs text-ink-muted">
+            Nilai Terealisasi Hari Ini = Principal (Jual) + Accrued Interest (Jual) + Kupon yang Diterima Selama Holding —
+            accrued interest sudah termasuk di dalamnya, bukan angka terpisah yang belum ditambahkan.
           </p>
+          <div className="num mt-3 space-y-1 border-t border-border pt-3 text-[11px] text-ink-faint">
+            <p>
+              Nilai Terealisasi = Principal {formatCurrency(data.redemption.sell!.principal, oldBond.currency)} + Accrued{" "}
+              {formatCurrency(data.redemption.sell!.accruedInterest, oldBond.currency)} + Kupon{" "}
+              {formatCurrency(data.periodicCouponsReceived, oldBond.currency)} = {formatCurrency(data.totalValueRealizedToday, oldBond.currency)}
+            </p>
+            <p>
+              Nilai Terealisasi − Modal Awal = {formatCurrency(data.totalValueRealizedToday, oldBond.currency)} −{" "}
+              {formatCurrency(data.originalCapital, oldBond.currency)} ={" "}
+              {data.profitVsCapitalToday >= 0 ? "+" : ""}
+              {formatCurrency(data.profitVsCapitalToday, oldBond.currency)}
+            </p>
+          </div>
         </SectionPanel>
       </div>
 
